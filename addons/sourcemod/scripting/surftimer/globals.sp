@@ -65,9 +65,6 @@
 // Maximum amount of zones in a map
 #define MAXZONES 128
 
-// Part of SMLib
-#define MAX_WEAPONS				48	// Max number of weapons availabl
-
 // Ranking Definitions
 #define MAX_PR_PLAYERS 1066
 #define MAX_SKILLGROUPS 64
@@ -100,51 +97,12 @@
 /*====================================
 =            Enumerations            =
 ====================================*/
-
-// new frame info
-enum struct frame_t
-{
-	float pos[3];
-	float ang[2];
-	int buttons;
-	int flags;
-	MoveType mt;
-}
-
-
-// old frame info
-enum struct FrameInfo
-{
-	int PlayerButtons;
-	int PlayerImpulse;
-	float ActualVelocity[3];
-	float PredictedVelocity[3];
-	float PredictedAngles[2];
-	CSWeaponID NewWeapon;
-	int PlayerSubtype;
-	int PlayerSeed;
-	int AdditionalFields;
-	int Pause;
-}
-
 enum struct AdditionalTeleport
 {
 	float AtOrigin[3];
 	float AtAngles[3];
 	float AtVelocity[3];
 	int AtFlags;
-}
-
-enum struct FileHeader
-{
-	int BinaryFormatVersion;
-	char Time[32];
-	char Playername[MAX_NAME_LENGTH];
-	int Checkpoints;
-	int TickCount;
-	float InitialPosition[3];
-	float InitialAngles[3];
-	ArrayList Frames;
 }
 
 enum struct MapZone

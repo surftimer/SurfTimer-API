@@ -11,9 +11,7 @@
 
 #include <sourcemod>
 #include <sdkhooks>
-#include <sdktools>
 #include <adminmenu>
-#include <cstrike>
 #include <geoip>
 #include <basecomm>
 #include <colorlib>
