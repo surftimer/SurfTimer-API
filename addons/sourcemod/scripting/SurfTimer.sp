@@ -415,6 +415,31 @@ public void OnClientPutInServer(int client)
 		return;
 	}
 
+	if (IsFakeClient(client))
+	{
+		CS_SetMVPCount(client, 1);
+		return;
+	}
+	else
+	{
+		// Get SteamID
+		if (!GetClientAuthId(client, AuthId_Steam2, g_szSteamID[client], sizeof(g_szSteamID[]), true))
+		{
+			RequestFrame(OnClientPutInServer, client);
+			return;
+		}
+		
+		// Check if steamid has the value of "STEAM_ID_STOP_IGNORING_RETVALS"
+		// Reported here: https://github.com/surftimer/SurfTimer/issues/549
+		// This was being triggered by replay bots
+		if (g_szSteamID[client][6] == 'I' && g_szSteamID[client][7] == 'D')
+		{
+			RequestFrame(OnClientPutInServer, client);
+			return;
+		}
+		g_MVPStars[client] = 0;
+	}
+
 	// SDKHooks
 	if (g_bClientHooksCalled[client] == false)
 	{
@@ -423,21 +448,6 @@ public void OnClientPutInServer(int client)
 		SDKHook(client, SDKHook_OnTakeDamage, Hook_OnTakeDamage);
 		SDKHook(client, SDKHook_PreThink, OnPlayerThink);
 		g_bClientHooksCalled[client] = true;
-	}
-
-	// Get SteamID
-	if (!GetClientAuthId(client, AuthId_Steam2, g_szSteamID[client], sizeof(g_szSteamID[]), true))
-	{
-		RequestFrame(OnClientPutInServer, client);
-		return;
-	}
-
-	// Check if steamid has the value of "STEAM_ID_STOP_IGNORING_RETVALS"
-	// Reported here: https://github.com/surftimer/SurfTimer/issues/549
-	if (g_szSteamID[client][6] == 'I' && g_szSteamID[client][7] == 'D')
-	{
-		RequestFrame(OnClientPutInServer, client);
-		return;
 	}
 
 	// Defaults
@@ -458,14 +468,6 @@ public void OnClientPutInServer(int client)
 	g_bRepeat[client] = false;
 	g_bNotTeleporting[client] = false;
 
-	if (IsFakeClient(client))
-	{
-		CS_SetMVPCount(client, 1);
-		return;
-	}
-	else
-		g_MVPStars[client] = 0;
-
 	// Client Country
 	GetCountry(client);
 
@@ -474,10 +476,6 @@ public void OnClientPutInServer(int client)
 
 	// char fix
 	FixPlayerName(client);
-
-	// Position Restoring
-	if (GetConVarBool(g_hcvarRestore) && !g_bRenaming && !g_bInTransactionChain)
-	db_selectLastRun(client);
 
 	if (g_bTierFound)
 		AnnounceTimer[client] = CreateTimer(20.0, AnnounceMap, client, TIMER_FLAG_NO_MAPCHANGE);
@@ -488,6 +486,12 @@ public void OnClientPutInServer(int client)
 		g_bLoadingSettings[client] = true;
 		g_iSettingToLoad[client] = 0;
 		LoadClientSetting(client, g_iSettingToLoad[client]);
+	}
+
+	// Position Restoring
+	if (GetConVarBool(g_hcvarRestore) && !g_bRenaming && !g_bInTransactionChain)
+	{
+		db_selectLastRun(client);
 	}
 }
 
