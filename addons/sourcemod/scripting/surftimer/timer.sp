@@ -294,11 +294,20 @@ public Action Timer_1s(Handle timer)
 	return Plugin_Continue;
 }
 
-public Action ReplayTimer(Handle timer, any userid)
+public Action ReplayTimer(Handle timer, DataPack replayInfo)
 {
-	int client = GetClientOfUserId(userid);
+	replayInfo.Reset();
+	int client = GetClientOfUserId(replayInfo.ReadCell());
+	int pb = replayInfo.ReadCell();
+	int wr = replayInfo.ReadCell();
+
+	CPrintToChat(client, "ReplayTimer Pack - client: %i | pb: %d | wr: %d", client, pb, wr);
+
 	if (IsValidClient(client) && !IsFakeClient(client))
-		SaveRecording(client, 0, 0);
+	{
+		SaveRecording(client, 0, 0, pb, wr);
+		CPrintToChat(client, "{green}Saving ReplayTimer");
+	}
 	else
 		g_bNewReplay[client] = false;
 
@@ -311,9 +320,15 @@ public Action BonusReplayTimer(Handle timer, Handle pack)
 	ResetPack(pack);
 	int client = GetClientOfUserId(ReadPackCell(pack));
 	int zGrp = ReadPackCell(pack);
+	int pb = ReadPackCell(pack);
+	int wr = ReadPackCell(pack);
 
 	if (IsValidClient(client) && !IsFakeClient(client))
-		SaveRecording(client, zGrp, 0);
+	{
+		// SaveRecording(client, zGrp, 0);
+		SaveRecording(client, zGrp, 0, pb, wr);
+		CPrintToChat(client, "Saving BonusReplayTimer");
+	}
 	else
 		g_bNewBonus[client] = false;
 
@@ -326,9 +341,15 @@ public Action StyleReplayTimer(Handle timer, Handle pack)
 	ResetPack(pack);
 	int client = GetClientOfUserId(ReadPackCell(pack));
 	int style = ReadPackCell(pack);
+	int pb = ReadPackCell(pack);
+	int wr = ReadPackCell(pack);
 
 	if (IsValidClient(client) && !IsFakeClient(client))
-		SaveRecording(client, 0, style);
+	{
+		// SaveRecording(client, 0, style);
+		SaveRecording(client, 0, style, pb, wr);
+		CPrintToChat(client, "Saving StyleReplayTimer");
+	}
 	else
 		g_bNewReplay[client] = false;
 
@@ -341,9 +362,15 @@ public Action StyleBonusReplayTimer(Handle timer, Handle pack)
 	int client = GetClientOfUserId(ReadPackCell(pack));
 	int zGrp = ReadPackCell(pack);
 	int style = ReadPackCell(pack);
+	int pb = ReadPackCell(pack);
+	int wr = ReadPackCell(pack);
 
 	if (IsValidClient(client) && !IsFakeClient(client))
-		SaveRecording(client, zGrp, style);
+	{
+		// SaveRecording(client, zGrp, style);
+		SaveRecording(client, zGrp, style, pb, wr);
+		CPrintToChat(client, "Saving StyleBonusReplayTimer");
+	}
 	else
 		g_bNewBonus[client] = false;
 

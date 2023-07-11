@@ -315,7 +315,12 @@ public void CL_OnEndTimerPress(int client)
 				{
 					g_fReplayTimes[0][0] = g_fFinalTime[client];
 					g_bNewReplay[client] = true;
-					CreateTimer(3.0, ReplayTimer, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
+					// PB Replays
+					DataPack replayInfo = new DataPack();
+					replayInfo.WriteCell(GetClientUserId(client));
+					replayInfo.WriteCell(0);
+					replayInfo.WriteCell(1);
+					CreateTimer(3.0, ReplayTimer, replayInfo, TIMER_FLAG_NO_MAPCHANGE);
 				}
 			}
 
@@ -332,9 +337,21 @@ public void CL_OnEndTimerPress(int client)
 			diff = g_fPersonalRecord[client] - g_fFinalTime[client];
 			FormatTimeFloat(client, diff, 3, szDiff, sizeof(szDiff));
 			if (diff > 0.0)
-			Format(g_szTimeDifference[client], sizeof(szDiff), "-%s", szDiff);
+				Format(g_szTimeDifference[client], sizeof(szDiff), "-%s", szDiff);
 			else
-			Format(g_szTimeDifference[client], sizeof(szDiff), "+%s", szDiff);
+				Format(g_szTimeDifference[client], sizeof(szDiff), "+%s", szDiff);
+			
+			// PB Replay
+			if (g_fPersonalStyleRecord[style][client] > g_fFinalTime[client] && !g_bPositionRestored[client] && GetConVarBool(g_hReplayBot))
+			{
+				// PB Replays
+				DataPack replayInfo = new DataPack();
+				replayInfo.WriteCell(GetClientUserId(client));
+				replayInfo.WriteCell(1); // pb
+				replayInfo.WriteCell(0); // wr
+				CreateTimer(3.0, ReplayTimer, replayInfo, TIMER_FLAG_NO_MAPCHANGE);
+				CPrintToChat(client, "{red}Saving PB replay");
+			}
 
 			// If the server already has a record
 			if (g_MapTimesCount > 0)
@@ -369,7 +386,13 @@ public void CL_OnEndTimerPress(int client)
 					{
 						g_bNewReplay[client] = true;
 						g_fReplayTimes[0][0] = g_fFinalTime[client];
-						CreateTimer(3.0, ReplayTimer, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
+						// CreateTimer(3.0, ReplayTimer, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
+						// PB Replays
+						DataPack replayInfo = new DataPack();
+						replayInfo.WriteCell(GetClientUserId(client));
+						replayInfo.WriteCell(0);
+						replayInfo.WriteCell(1);
+						CreateTimer(3.0, ReplayTimer, replayInfo, TIMER_FLAG_NO_MAPCHANGE);
 					}
 				}
 			}
@@ -380,7 +403,14 @@ public void CL_OnEndTimerPress(int client)
 				{
 					g_fReplayTimes[0][0] = g_fFinalTime[client];
 					g_bNewReplay[client] = true;
-					CreateTimer(3.0, ReplayTimer, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
+					// CreateTimer(3.0, ReplayTimer, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
+					
+					// PB Replays
+					DataPack replayInfo = new DataPack();
+					replayInfo.WriteCell(GetClientUserId(client));
+					replayInfo.WriteCell(0);
+					replayInfo.WriteCell(1);
+					CreateTimer(3.0, ReplayTimer, replayInfo, TIMER_FLAG_NO_MAPCHANGE);
 				}
 
 				g_bMapSRVRecord[client] = true;
@@ -419,6 +449,13 @@ public void CL_OnEndTimerPress(int client)
 
 				db_selectRecord(client);
 
+				// PB Replays
+				DataPack replayInfo = new DataPack();
+				replayInfo.WriteCell(GetClientUserId(client));
+				replayInfo.WriteCell(1); // pb
+				replayInfo.WriteCell(0); // wr
+				CreateTimer(3.0, ReplayTimer, replayInfo, TIMER_FLAG_NO_MAPCHANGE);
+				CPrintToChat(client, "{red}Saving PB replay");
 			}
 			else if (diff > 0.0)
 			{
@@ -432,6 +469,13 @@ public void CL_OnEndTimerPress(int client)
 
 				db_selectRecord(client);
 
+				// PB Replays
+				DataPack replayInfo = new DataPack();
+				replayInfo.WriteCell(GetClientUserId(client));
+				replayInfo.WriteCell(1); // pb
+				replayInfo.WriteCell(0); // wr
+				CreateTimer(3.0, ReplayTimer, replayInfo, TIMER_FLAG_NO_MAPCHANGE);
+				CPrintToChat(client, "{red}Saving PB replay");
 			}
 			if (!g_bMapSRVRecord[client] && !g_bMapFirstRecord[client] && !g_bMapPBRecord[client])
 			{
@@ -451,10 +495,13 @@ public void CL_OnEndTimerPress(int client)
 				{
 					g_fReplayTimes[0][style] = g_fFinalTime[client];
 					g_bNewReplay[client] = true;
+					// PB Replays
 					Handle pack;
 					CreateDataTimer(3.0, StyleReplayTimer, pack);
 					WritePackCell(pack, GetClientUserId(client));
 					WritePackCell(pack, style);
+					WritePackCell(pack, 1); // pb
+					WritePackCell(pack, 1); // wr
 				}
 			}
 
@@ -492,10 +539,13 @@ public void CL_OnEndTimerPress(int client)
 					{
 						g_bNewReplay[client] = true;
 						g_fReplayTimes[0][style] = g_fFinalTime[client];
+						// PB Replays
 						Handle pack;
 						CreateDataTimer(3.0, StyleReplayTimer, pack);
 						WritePackCell(pack, GetClientUserId(client));
 						WritePackCell(pack, style);
+						WritePackCell(pack, 1); // pb
+						WritePackCell(pack, 1); // wr
 					}
 				}
 			}
@@ -505,10 +555,13 @@ public void CL_OnEndTimerPress(int client)
 				{
 					g_bNewReplay[client] = true;
 					g_fReplayTimes[0][style] = g_fFinalTime[client];
+					// PB Replays
 					Handle pack;
 					CreateDataTimer(3.0, StyleReplayTimer, pack);
 					WritePackCell(pack, GetClientUserId(client));
 					WritePackCell(pack, style);
+					WritePackCell(pack, 1); // pb
+					WritePackCell(pack, 1); // wr
 				}
 
 				// Has to be the new record, since it is the first completion
@@ -531,6 +584,14 @@ public void CL_OnEndTimerPress(int client)
 				g_pr_showmsg[client] = true;
 				
 				db_selectPersonalStyleRecord(client, style);
+
+				// PB replays
+				Handle pack;
+				CreateDataTimer(3.0, StyleReplayTimer, pack);
+				WritePackCell(pack, GetClientUserId(client));
+				WritePackCell(pack, style);
+				WritePackCell(pack, 1); // pb
+				WritePackCell(pack, 0); // wr
 			}
 			else if (diff > 0.0)
 			{
@@ -542,6 +603,14 @@ public void CL_OnEndTimerPress(int client)
 				g_pr_showmsg[client] = true;
 
 				db_selectPersonalStyleRecord(client, style);
+
+				// PB replays
+				Handle pack;
+				CreateDataTimer(3.0, StyleReplayTimer, pack);
+				WritePackCell(pack, GetClientUserId(client));
+				WritePackCell(pack, style);
+				WritePackCell(pack, 1); // pb
+				WritePackCell(pack, 0); // wr
 			}
 
 			if (!g_bStyleMapSRVRecord[style][client] && !g_bStyleMapFirstRecord[style][client] && !g_bStyleMapPBRecord[style][client])
@@ -575,10 +644,14 @@ public void CL_OnEndTimerPress(int client)
 				{
 					g_fReplayTimes[zGroup][0] = g_fFinalTime[client];
 					g_bNewBonus[client] = true;
+
+					// PB Replays
 					Handle pack;
 					CreateDataTimer(3.0, BonusReplayTimer, pack);
 					WritePackCell(pack, GetClientUserId(client));
 					WritePackCell(pack, zGroup);
+					WritePackCell(pack, 1); // pb
+					WritePackCell(pack, 1); // wr
 				}
 			}
 
@@ -629,10 +702,14 @@ public void CL_OnEndTimerPress(int client)
 					{
 						g_bNewBonus[client] = true;
 						g_fReplayTimes[zGroup][0] = g_fFinalTime[client];
+
+						// PB Replays
 						Handle pack;
 						CreateDataTimer(3.0, BonusReplayTimer, pack);
 						WritePackCell(pack, GetClientUserId(client));
 						WritePackCell(pack, zGroup);
+						WritePackCell(pack, 1); // pb
+						WritePackCell(pack, 1); // wr
 					}
 				}
 			}
@@ -643,10 +720,14 @@ public void CL_OnEndTimerPress(int client)
 				{
 					g_bNewBonus[client] = true;
 					g_fReplayTimes[zGroup][0] = g_fFinalTime[client];
+
+					//PB Replays
 					Handle pack;
 					CreateDataTimer(3.0, BonusReplayTimer, pack);
 					WritePackCell(pack, GetClientUserId(client));
 					WritePackCell(pack, zGroup);
+					WritePackCell(pack, 1); // pb
+					WritePackCell(pack, 1); // wr
 				}
 
 				g_fOldBonusRecordTime[zGroup] = g_fBonusFastest[zGroup];
@@ -677,6 +758,14 @@ public void CL_OnEndTimerPress(int client)
 				g_pr_showmsg[client] = true;
 				db_InsertOrUpdateCheckpoints(client, g_szSteamID[client], zGroup);
 				db_insertBonus(client, g_szSteamID[client], szName, g_fFinalTime[client], zGroup);
+
+				// PB Replays
+				Handle pack;
+				CreateDataTimer(3.0, BonusReplayTimer, pack);
+				WritePackCell(pack, GetClientUserId(client));
+				WritePackCell(pack, zGroup);
+				WritePackCell(pack, 1); // pb
+				WritePackCell(pack, 0); // wr
 			}
 
 			else if (diff > 0.0)
@@ -689,6 +778,14 @@ public void CL_OnEndTimerPress(int client)
 				g_pr_showmsg[client] = true;
 				db_InsertOrUpdateCheckpoints(client, g_szSteamID[client], zGroup);
 				db_updateBonus(client, g_szSteamID[client], szName, g_fFinalTime[client], zGroup);
+
+				// PB Replays
+				Handle pack;
+				CreateDataTimer(3.0, BonusReplayTimer, pack);
+				WritePackCell(pack, GetClientUserId(client));
+				WritePackCell(pack, zGroup);
+				WritePackCell(pack, 1); // pb
+				WritePackCell(pack, 0); // wr
 			}
 
 
@@ -708,11 +805,15 @@ public void CL_OnEndTimerPress(int client)
 				{
 					g_fReplayTimes[zGroup][style] = g_fFinalTime[client];
 					g_bNewBonus[client] = true;
+
+					// PB Replays
 					Handle pack;
 					CreateDataTimer(3.0, StyleBonusReplayTimer, pack);
 					WritePackCell(pack, GetClientUserId(client));
 					WritePackCell(pack, zGroup);
 					WritePackCell(pack, style);
+					WritePackCell(pack, 1); // pb
+					WritePackCell(pack, 1); // wr
 				}
 			}
 
@@ -754,11 +855,14 @@ public void CL_OnEndTimerPress(int client)
 					{
 						g_bNewBonus[client] = true;
 						g_fReplayTimes[zGroup][style] = g_fFinalTime[client];
+						// PB Replays
 						Handle pack;
 						CreateDataTimer(3.0, StyleBonusReplayTimer, pack);
 						WritePackCell(pack, GetClientUserId(client));
 						WritePackCell(pack, zGroup);
 						WritePackCell(pack, style);
+						WritePackCell(pack, 1); // pb
+						WritePackCell(pack, 1); // wr
 					}
 				}
 			}
@@ -768,11 +872,14 @@ public void CL_OnEndTimerPress(int client)
 				{
 					g_bNewBonus[client] = true;
 					g_fReplayTimes[zGroup][style] = g_fFinalTime[client];
+					// PB Replays
 					Handle pack;
 					CreateDataTimer(3.0, StyleBonusReplayTimer, pack);
 					WritePackCell(pack, GetClientUserId(client));
 					WritePackCell(pack, zGroup);
 					WritePackCell(pack, style);
+					WritePackCell(pack, 1); // pb
+					WritePackCell(pack, 1); // wr
 				}
 
 				// Has to be the new record, since it is the first completion
@@ -795,6 +902,15 @@ public void CL_OnEndTimerPress(int client)
 				g_bBonusFirstRecord[client] = true;
 				g_pr_showmsg[client] = true;
 				db_insertBonusStyle(client, g_szSteamID[client], szName, g_fFinalTime[client], zGroup, style);
+
+				// PB Replays
+				Handle pack;
+				CreateDataTimer(3.0, StyleBonusReplayTimer, pack);
+				WritePackCell(pack, GetClientUserId(client));
+				WritePackCell(pack, zGroup);
+				WritePackCell(pack, style);
+				WritePackCell(pack, 1); // pb
+				WritePackCell(pack, 0); // wr
 			}
 			else if (diff > 0.0)
 			{
@@ -805,6 +921,15 @@ public void CL_OnEndTimerPress(int client)
 				g_bBonusPBRecord[client] = true;
 				g_pr_showmsg[client] = true;
 				db_updateBonusStyle(client, g_szSteamID[client], szName, g_fFinalTime[client], zGroup, style);
+
+				// PB Replays
+				Handle pack;
+				CreateDataTimer(3.0, StyleBonusReplayTimer, pack);
+				WritePackCell(pack, GetClientUserId(client));
+				WritePackCell(pack, zGroup);
+				WritePackCell(pack, style);
+				WritePackCell(pack, 1); // pb
+				WritePackCell(pack, 0); // wr
 			}
 
 
@@ -984,7 +1109,7 @@ public void CL_OnEndWrcpTimerPress(int client, float time2)
 		// Make a new stage replay bot?
 		if (GetConVarBool(g_hReplaceReplayTime) && (!g_bStageReplay[stage] || g_fFinalWrcpTime[client] < g_fStageReplayTimes[stage]))
 		{
-			Stage_SaveRecording(client, stage, g_szFinalWrcpTime[client]);
+			Stage_SaveRecording(client, stage, g_szFinalWrcpTime[client], 0, 1);
 		}
 		else
 		{
@@ -992,12 +1117,12 @@ public void CL_OnEndWrcpTimerPress(int client, float time2)
 			{ // If the server already has a record
 				if (g_fFinalWrcpTime[client] < g_fStageRecord[stage] && g_fFinalWrcpTime[client] > 0.0)
 				{
-					Stage_SaveRecording(client, stage, g_szFinalWrcpTime[client]);
+					Stage_SaveRecording(client, stage, g_szFinalWrcpTime[client], 0, 1);
 				}
 			}
 			else
 			{
-				Stage_SaveRecording(client, stage, g_szFinalWrcpTime[client]);
+				Stage_SaveRecording(client, stage, g_szFinalWrcpTime[client], 0, 1);
 			}
 		}
 

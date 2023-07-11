@@ -137,49 +137,82 @@ public void StopRecording(int client)
 	ClearFrame(client);
 }
 
-public void SaveRecording(int client, int zgroup, int style)
+public void SaveRecording(int client, int zgroup, int style, int pb, int wr)
 {
 	if (!IsValidClient(client) || g_aRecording[client] == null)
 	{
 		return;
 	}
 
-	g_bNewReplay[client] = false;
-	g_bNewBonus[client] = false;
+	// g_bNewReplay[client] = false;
+	// g_bNewBonus[client] = false;
 
 	// Check if the default record folder exists
-	char sPath2[256];
+	char sPath2[256], sPathPersonal[512], sPathPersonal2[512], steamId[64];
+	GetClientAuthId(client, AuthId_SteamID64, steamId, sizeof(steamId));
 	BuildPath(Path_SM, sPath2, sizeof(sPath2), "%s", CK_REPLAY_PATH);
+	BuildPath(Path_SM, sPathPersonal2, sizeof(sPathPersonal2), "%s", CK_REPLAY_PATH);
 	if (!DirExists(sPath2))
 	{
 		CreateDirectory(sPath2, 511);
 	}
 
-	// Build path
-	char sPath3[256];
-	Format(sPath3, sizeof(sPath3), "%s%s", CK_REPLAY_PATH, g_szMapName);
+	// WR Replay
+	if (wr == 1)
+	{
+		// Build path
+		char sPath3[256];
+		Format(sPath3, sizeof(sPath3), "%s%s", CK_REPLAY_PATH, g_szMapName);
 
-	// Bonus replay path
-	if (zgroup > 0)
-	{
-		Format(sPath3, sizeof(sPath3), "%s_bonus_%d", sPath3, zgroup);
-	}
-	
-	// Style replay path
-	if (style > 0)
-	{
-		Format(sPath3, sizeof(sPath3), "%s_style_%d", sPath3, style);
-	}
-	
-	// Finish the path
-	Format(sPath3, sizeof(sPath3), "%s.rec", sPath3);
-	BuildPath(Path_SM, sPath2, sizeof(sPath2), sPath3);
+		// Bonus replay path
+		if (zgroup > 0)
+		{
+			Format(sPath3, sizeof(sPath3), "%s_bonus_%d", sPath3, zgroup);
+		}
+		
+		// Style replay path
+		if (style > 0)
+		{
+			Format(sPath3, sizeof(sPath3), "%s_style_%d", sPath3, style);
+		}
 
-	if (FileExists(sPath2) && GetConVarBool(g_hBackupReplays))
+		// Finish the path
+		Format(sPath3, sizeof(sPath3), "%s.rec", sPath3);
+		BuildPath(Path_SM, sPath2, sizeof(sPath2), sPath3);
+
+		if (FileExists(sPath2) && GetConVarBool(g_hBackupReplays))
+		{
+			char newPath[256];
+			Format(newPath, 256, "%s.bak", sPath2);
+			RenameFile(newPath, sPath2);
+		}
+	}
+
+	// PB Replay
+	if (pb == 1)
 	{
-		char newPath[256];
-		Format(newPath, 256, "%s.bak", sPath2);
-		RenameFile(newPath, sPath2);
+		Format(sPathPersonal, sizeof(sPathPersonal), "%s%s_%s", CK_REPLAY_PATH, steamId, g_szMapName);
+
+		// Bonus replay path
+		if (zgroup > 0)
+		{
+			Format(sPathPersonal, sizeof(sPathPersonal), "%s_bonus_%d", sPathPersonal, zgroup);
+		}
+
+		// Style replay path
+		if (style > 0)
+		{
+			Format(sPathPersonal, sizeof(sPathPersonal), "%s_style_%d", sPathPersonal, style);
+		}
+
+		Format(sPathPersonal, sizeof(sPathPersonal), "%s.rec", sPathPersonal);
+		BuildPath(Path_SM, sPathPersonal2, sizeof(sPathPersonal2), sPathPersonal);
+		if (FileExists(sPathPersonal2) && GetConVarBool(g_hBackupReplays))
+		{
+			char newPath[256];
+			Format(newPath, 256, "%s.bak", sPathPersonal2);
+			RenameFile(newPath, sPathPersonal2);
+		}
 	}
 
 	char szName[MAX_NAME_LENGTH];
@@ -204,7 +237,7 @@ public void SaveRecording(int client, int zgroup, int style)
 	{
 		if (i == -1)
 		{
-			LogError("Map record cannot be saved. Client: \"%L\", startFrame: %d, endFrame: %d (g_iRecordedTicks: %d), i: %d, Path/File: %s", client, startFrame, endFrame, g_iRecordedTicks[client], i, sPath2);
+			LogError("Map record cannot be saved. Client: \"%L\", startFrame: %d, endFrame: %d (g_iRecordedTicks: %d), i: %d, Path/File: %s (%s)", client, startFrame, endFrame, g_iRecordedTicks[client], i, sPath2, sPathPersonal2);
 			continue;
 		}
 		
@@ -212,7 +245,16 @@ public void SaveRecording(int client, int zgroup, int style)
 		header.Frames.PushArray(aFrameData, sizeof(frame_t));
 	}
 
-	WriteRecordToDisk(sPath2, header);
+	// Write WR Replay
+	if (wr == 1)
+	{
+		WriteRecordToDisk(sPath2, header);
+	}
+	// Write PB Replay
+	if (pb == 1)
+	{
+		WriteRecordToDisk(sPathPersonal2, header);
+	}
 
 	delete header.Frames;
 
@@ -224,14 +266,17 @@ public void SaveRecording(int client, int zgroup, int style)
 		StopRecording(client);
 	}
 
-	if(zgroup == 0) {
+	if (wr == 1)
+	{
+		if(zgroup == 0) {
 
-		for(int j = 0; j < CPLIMIT; j++)
-		{
-			g_iCPStartFrame[style][j] = g_iCPStartFrame_CurrentRun[style][j][client];
+			for(int j = 0; j < CPLIMIT; j++)
+			{
+				g_iCPStartFrame[style][j] = g_iCPStartFrame_CurrentRun[style][j][client];
+			}
+
+			db_UpdateReplaysTick(client, style);
 		}
-
-		db_UpdateReplaysTick(client, style);
 	}
 }
 
@@ -598,6 +643,9 @@ public bool WriteRecordToDisk(const char[] sPath, FileHeader header)
 
 		return false;
 	}
+
+	CPrintToChatAll("Writing replay - %s", sPath);
+	CPrintToChatAll("  --  %s (%s) | TickCount %i", header.Playername, header.Time, header.TickCount);
 
 	fFile.WriteInt32(BM_MAGIC);
 	fFile.WriteInt8(header.BinaryFormatVersion);
@@ -1410,18 +1458,17 @@ public void Stage_StartRecording(int client)
 	if (g_iStageStartTouchTick[client] > g_iStageStartFrame[client]) g_iStageStartFrame[client] = g_iStageStartTouchTick[client];
 }
 
-public void Stage_SaveRecording(int client, int stage, char[] time)
+public void Stage_SaveRecording(int client, int stage, char[] time, int pb, int wrcp)
 {
 	if (!IsValidClient(client) || g_aRecording[client] == null)
 	{
 		return;
 	}
 
-	char szName[MAX_NAME_LENGTH];
+	char szName[MAX_NAME_LENGTH], sPath2[512], sPathPersonal[512], steamId[64];
 	GetClientName(client, szName, MAX_NAME_LENGTH);
-
-	char sPath2[256];
-
+	GetClientAuthId(client, AuthId_SteamID64, steamId, sizeof(steamId));
+	
 	// Check if the default record folder exists?
 	BuildPath(Path_SM, sPath2, sizeof(sPath2), "%s", CK_REPLAY_PATH);
 	if (!DirExists(sPath2))
@@ -1429,13 +1476,29 @@ public void Stage_SaveRecording(int client, int stage, char[] time)
 		CreateDirectory(sPath2, 511);
 	}
 
-	BuildPath(Path_SM, sPath2, sizeof(sPath2), "%s%s_stage_%d.rec", CK_REPLAY_PATH, g_szMapName, stage);
-
-	if (FileExists(sPath2) && GetConVarBool(g_hBackupReplays))
+	// WRCP replay path
+	if (wrcp == 1)
 	{
-		char newPath[256];
-		Format(newPath, 256, "%s.bak", sPath2);
-		RenameFile(newPath, sPath2);
+		BuildPath(Path_SM, sPath2, sizeof(sPath2), "%s%s_stage_%d.rec", CK_REPLAY_PATH, g_szMapName, stage);
+
+		if (FileExists(sPath2) && GetConVarBool(g_hBackupReplays))
+		{
+			char newPath[256];
+			Format(newPath, 256, "%s.bak", sPath2);
+			RenameFile(newPath, sPath2);
+		}
+	}
+	// Personal best replay path
+	if (pb == 1)
+	{
+		BuildPath(Path_SM, sPathPersonal, sizeof(sPathPersonal), "%s%s%s_stage_%d.rec", CK_REPLAY_PATH, steamId, g_szMapName, stage);
+
+		if (FileExists(sPathPersonal) && GetConVarBool(g_hBackupReplays))
+		{
+			char newPath[256];
+			Format(newPath, 256, "%s.bak", sPathPersonal);
+			RenameFile(newPath, sPathPersonal);
+		}
 	}
 
 	int startFrame = g_iStageStartFrame[client];
@@ -1455,7 +1518,7 @@ public void Stage_SaveRecording(int client, int stage, char[] time)
 	{
 		if (i == -1)
 		{
-			LogError("Stage record cannot be saved. Client: \"%L\", startFrame: %d (g_iStageStartFrame: %d), endFrame: %d (g_iRecordedTicks: %d), i: %d, Path/File: %s", client, startFrame, g_iStageStartFrame[client], endFrame, g_iRecordedTicks[client], i, sPath2);
+			LogError("Stage record cannot be saved. Client: \"%L\", startFrame: %d (g_iStageStartFrame: %d), endFrame: %d (g_iRecordedTicks: %d), i: %d, Path/File: %s (%s)", client, startFrame, g_iStageStartFrame[client], endFrame, g_iRecordedTicks[client], i, sPath2, sPathPersonal);
 			continue;
 		}
 		
@@ -1463,7 +1526,10 @@ public void Stage_SaveRecording(int client, int stage, char[] time)
 		header.Frames.PushArray(aFrameData, sizeof(frame_t));
 	}
 
-	WriteRecordToDisk(sPath2, header);
+	// Write WRCP file
+	if (wrcp == 1) WriteRecordToDisk(sPath2, header);
+	// Write PB file
+	if (pb == 1) WriteRecordToDisk(sPathPersonal, header);
 
 	delete header.Frames;
 
