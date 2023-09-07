@@ -13,14 +13,7 @@ public void apiPostCallback(HTTPResponse response, DataPack data)
 		delete data;
 		if (response.Status == HTTPStatus_NotModified)
 		{
-			JSONObject jsonObject = view_as<JSONObject>(response.Data);
-
-			// Assign the values from the JSONObject to variables
-			float	   xtime	  = jsonObject.GetFloat("xtime");
-			int		   inserted	  = jsonObject.GetInt("inserted");
-			delete jsonObject;
-
-			LogError("[Surf API] Could not CREATE item. Status %i (%s) - Ins: %i, Extime: %f", response.Status, func, inserted, xtime);
+			LogError("[Surf API] Could not CREATE item. Status %i (%s)", response.Status, func);
 			return;
 		}
 		LogError("[Surf API] POST callback error. Status %i (%s)", response.Status, func);
@@ -100,14 +93,7 @@ public void apiPutCallback(HTTPResponse response, DataPack data)
 		delete data;
 		if (response.Status == HTTPStatus_NotModified)
 		{
-			JSONObject jsonObject = view_as<JSONObject>(response.Data);
-
-			// Assign the values from the JSONObject to variables
-			float	   xtime	  = jsonObject.GetFloat("xtime");
-			int		   updated	  = jsonObject.GetInt("updated");
-			delete jsonObject;
-
-			LogError("[Surf API] Could not UPDATE item. Status %i (%s) - Ins: %i, Extime: %f", response.Status, func, updated, xtime);
+			LogQueryTime("[Surf API] Could not UPDATE item. Status %i (%s)", response.Status, func);
 			return;
 		}
 		LogError("[Surf API] PUT callback error. Status %i (%s)", response.Status, func);
@@ -263,14 +249,7 @@ public void apiDeleteCallback(HTTPResponse response, DataPack data)
 		delete data;
 		if (response.Status == HTTPStatus_NotModified)
 		{
-			JSONObject jsonObject = view_as<JSONObject>(response.Data);
-
-			// Assign the values from the JSONObject to variables
-			float	   xtime	  = jsonObject.GetFloat("xtime");
-			int		   updated	  = jsonObject.GetInt("updated");
-			delete jsonObject;
-
-			LogError("[Surf API] Could not DELETE item. Status %i (%s) - Ins: %i, Extime: %f", response.Status, func, updated, xtime);
+			LogError("[Surf API] Could not DELETE item. Status %i (%s)", response.Status, func);
 			return;
 		}
 		LogError("[Surf API] DELETE callback error. Status %i (%s)", response.Status, func);
