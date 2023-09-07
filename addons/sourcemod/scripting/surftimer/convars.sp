@@ -115,6 +115,11 @@ ConVar g_bHintsRandomOrder = null;								// If hints are in random order
 ConVar g_hDefaultPreSpeed = null;
 ConVar g_hLogQueryTimes = null;
 
+/* Surf API */
+ConVar g_hSurfApiHost;
+ConVar g_hSurfApiEnabled;
+/* --- */
+
 void CreateConVars()
 {
 	CreateConVar("timer_version", VERSION, "Timer Version.", FCVAR_DONTRECORD | FCVAR_SPONLY | FCVAR_REPLICATED | FCVAR_NOTIFY);
@@ -122,6 +127,11 @@ void CreateConVars()
 	AutoExecConfig_SetCreateDirectory(true);
 	AutoExecConfig_SetCreateFile(true);
 	AutoExecConfig_SetFile("surftimer");
+
+	/* Surf API */
+	g_hSurfApiHost = AutoExecConfig_CreateConVar("ck_api_host", "", "Host IP or domain of the Surf API");
+	g_hSurfApiEnabled = AutoExecConfig_CreateConVar("ck_api_enabled", "1", "Enable or disasble API integration");
+	/* --- */
 
 	g_hChatPrefix = AutoExecConfig_CreateConVar("ck_chat_prefix", "{lime}SurfTimer {default}|", "Determines the prefix used for chat messages");
 	g_hConnectMsg = AutoExecConfig_CreateConVar("ck_connect_msg", "1", "on/off - Enables a player connect message with country tag", _,true, 0.0, true, 1.0);
@@ -411,6 +421,10 @@ void CreateConVars()
 	g_hHostName = FindConVar("hostname");
 	HookConVarChange(g_hHostName, OnSettingChanged);
 	GetConVarString(g_hHostName, g_sServerName, sizeof(g_sServerName));
+
+	// Surf API
+	GetConVarString(g_hSurfApiHost, g_szApiHost, sizeof(g_szApiHost));
+	HookConVarChange(g_hSurfApiHost, OnSettingChanged);
 
 	// Chat Prefix
 	GetConVarString(g_hChatPrefix, g_szChatPrefix, sizeof(g_szChatPrefix));

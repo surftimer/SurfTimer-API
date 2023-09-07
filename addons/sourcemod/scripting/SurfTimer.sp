@@ -14,6 +14,7 @@
 #include <sdktools>
 #include <adminmenu>
 #include <cstrike>
+#include <ripext>
 #include <geoip>
 #include <basecomm>
 #include <colorvariables>
@@ -56,6 +57,7 @@
 #include "surftimer/mapsettings.sp"
 #include "surftimer/cvote.sp"
 #include "surftimer/vip.sp"
+#include "surftimer/actual_api.sp"
 
 /*====================================
 =               Events               =
@@ -1155,7 +1157,10 @@ public void OnSettingChanged(Handle convar, const char[] oldValue, const char[] 
 		KillTimer(g_hZoneTimer);
 		g_hZoneTimer = INVALID_HANDLE;
 	}
-
+	if (convar == g_hSurfApiHost)
+	{
+		GetConVarString(g_hSurfApiHost, g_szApiHost, sizeof(g_szApiHost));
+	}
 	delete g_hZoneTimer;
 	g_hZoneTimer = CreateTimer(GetConVarFloat(g_hChecker), BeamBoxAll, _, TIMER_REPEAT);
 }

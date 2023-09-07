@@ -1115,10 +1115,11 @@ public void LimitSpeedNew(int client)
     {
         g_iTicksOnGround[client] = 0;
     }
-    
+
     if (g_tickSpeedCap[client] > 0.0) 
 	{
         ApplySpeedCapXY(client, g_tickSpeedCap[client]);
+        // CPrintToChat(client, "{red}Limited: {yellow}%i{default} (%f)", g_iTicksOnGround[client], g_tickSpeedCap[client]);
         g_tickSpeedCap[client] = 0.0;
     }
 }
@@ -2625,41 +2626,10 @@ stock Action PrintSpecMessageAll(int client)
 		CPrintToChatAll("%t", "Misc20", g_szCountryCode[client], szChatRank, szName, szTextToAll);
 	else if (GetConVarBool(g_hPointSystem))
 	{
-		if (StrContains(szChatRank, "{blue}") != -1)
-		{
-			char szPlayerTitle2[256][2];
-			ExplodeString(szChatRank, "{blue}", szPlayerTitle2, 2, 256);
-			char szPlayerTitleColor[1024];
-			Format(szPlayerTitleColor, 1024, "%s", szPlayerTitle2[1]);
-			if (GetConVarBool(g_hPointSystem) && GetConVarBool(g_hColoredNames) && !g_bDbCustomTitleInUse[client])
-				Format(szName, sizeof(szName), "{%s}%s", szPlayerTitleColor, szName);
-			if (IsPlayerAlive(client))
-				CPrintToChatAll("%t", "Misc21", szPlayerTitle2[0], szPlayerTitle2[1], szName, szTextToAll);
-			else
-				CPrintToChatAll("%t", "Misc22", szPlayerTitle2[0], szPlayerTitle2[1], szName, szTextToAll);
-
-			return Plugin_Handled;
-		}
-		else if (StrContains(szChatRank, "{orange}") != -1)
-		{
-			char szPlayerTitle2[256][2];
-			ExplodeString(szChatRank, "{orange}", szPlayerTitle2, 2, 256);
-			char szPlayerTitleColor[1024];
-			Format(szPlayerTitleColor, 1024, "%s", szPlayerTitle2[1]);
-			if (GetConVarBool(g_hPointSystem) && GetConVarBool(g_hColoredNames) && !g_bDbCustomTitleInUse[client])
-				Format(szName, sizeof(szName), "{%s}%s", szPlayerTitleColor, szName);
-			if (IsPlayerAlive(client))
-				CPrintToChatAll("%t", "Misc23", szPlayerTitle2[0], szPlayerTitle2[1], szName, szTextToAll);
-			else
-				CPrintToChatAll("%t", "Misc24", szPlayerTitle2[0], szPlayerTitle2[1], szName, szTextToAll);
-
-			return Plugin_Handled;
-		}
-		else
-			CPrintToChatAll("%t", "Misc25", szChatRank, szName, szTextToAll);
-		}
-		else
-			CPrintToChatAll("%t", "Misc26", szName, szTextToAll);
+		CPrintToChatAll("%t", "Misc25", szChatRank, szName, szTextToAll);
+	}
+	else
+		CPrintToChatAll("%t", "Misc26", szName, szTextToAll);
 
 	for (int i = 1; i <= MaxClients; i++)
 		if (IsValidClient(i))
@@ -3475,12 +3445,12 @@ public void CenterHudAlive(int client)
 						{
 							// fluffys
 							if (g_bPracticeMode[client])
-								Format(g_szLastSRDifference[client], 64, "SR: <font color='#fc0'>%s</font>", g_szRecordMapTime);
+								Format(g_szLastSRDifference[client], 64, "WR: <font color='#fc0'>%s</font>", g_szRecordMapTime);
 							else
-								Format(g_szLastSRDifference[client], 64, "SR: <font color='#fc0'>%s</font>", g_szRecordMapTime);
+								Format(g_szLastSRDifference[client], 64, "WR: <font color='#fc0'>%s</font>", g_szRecordMapTime);
 						}
 						else
-							Format(g_szLastSRDifference[client], 64, "SR: N/A");
+							Format(g_szLastSRDifference[client], 64, "WR: N/A");
 					}
 					else if (g_iClientInZone[client][2] == 0 && g_iCurrentStyle[client] != 0) // Styles
 					{
@@ -3488,12 +3458,12 @@ public void CenterHudAlive(int client)
 						{
 							// fluffys
 							if (g_bPracticeMode[client])
-								Format(g_szLastSRDifference[client], 64, "SR: <font color='#fc0'>%s</font>", g_szRecordStyleMapTime[style]);
+								Format(g_szLastSRDifference[client], 64, "WR: <font color='#fc0'>%s</font>", g_szRecordStyleMapTime[style]);
 							else
-								Format(g_szLastSRDifference[client], 64, "SR: <font color='#fc0'>%s</font>", g_szRecordStyleMapTime[style]);
+								Format(g_szLastSRDifference[client], 64, "WR: <font color='#fc0'>%s</font>", g_szRecordStyleMapTime[style]);
 						}
 						else
-							Format(g_szLastSRDifference[client], 64, "SR: N/A");
+							Format(g_szLastSRDifference[client], 64, "WR: N/A");
 					}
 					else
 					{
@@ -3501,22 +3471,22 @@ public void CenterHudAlive(int client)
 						{
 							if (StrEqual(g_szBonusFastestTime[g_iClientInZone[client][2]], "N/A"))
 							{
-								Format(g_szLastSRDifference[client], 64, "SR: <font color='#fff'>%s</font>", g_szBonusFastestTime[g_iClientInZone[client][2]]);
+								Format(g_szLastSRDifference[client], 64, "WR: <font color='#fff'>%s</font>", g_szBonusFastestTime[g_iClientInZone[client][2]]);
 							}
 							else
 							{	
-								Format(g_szLastSRDifference[client], 64, "SR: <font color='#fc0'>%s</font>", g_szBonusFastestTime[g_iClientInZone[client][2]]);
+								Format(g_szLastSRDifference[client], 64, "WR: <font color='#fc0'>%s</font>", g_szBonusFastestTime[g_iClientInZone[client][2]]);
 							}
 						}
 						else if (g_iCurrentStyle[client] != 0) // Styles
 						{
 							if (StrEqual(g_szStyleBonusFastestTime[style][g_iClientInZone[client][2]], "N/A"))
 							{
-								Format(g_szLastSRDifference[client], 64, "SR: <font color='#fff'>%s</font>", g_szStyleBonusFastestTime[style][g_iClientInZone[client][2]]);
+								Format(g_szLastSRDifference[client], 64, "WR: <font color='#fff'>%s</font>", g_szStyleBonusFastestTime[style][g_iClientInZone[client][2]]);
 							}
 							else
 							{
-								Format(g_szLastSRDifference[client], 64, "SR: <font color='#fc0'>%s</font>", g_szStyleBonusFastestTime[style][g_iClientInZone[client][2]]);
+								Format(g_szLastSRDifference[client], 64, "WR: <font color='#fc0'>%s</font>", g_szStyleBonusFastestTime[style][g_iClientInZone[client][2]]);
 							}
 						}
 					}
@@ -3727,7 +3697,7 @@ public void SideHudAlive(int client)
 				{
 					ExplodeString(g_szLastSRDifference[client], ">", szBuffer, 2, 128);
 					ExplodeString(szBuffer[1], "<", szBuffer, 2, 128);
-					Format(szWR, 128, "SR: %s", szBuffer[0]);
+					Format(szWR, 128, "WR: %s", szBuffer[0]);
 				}
 				else
 					Format(szWR, 128, "%s", g_szLastSRDifference[client]);
@@ -3993,28 +3963,28 @@ public void Checkpoint(int client, int zone, int zonegroup, float time)
 		if (f_srDiff > 0)
 		{
 			Format(sz_srDiff_colorless, 128, "-%s", sz_srDiff);
-			Format(sz_srDiff, 128, "%cSR: %c-%s%c", WHITE, LIGHTGREEN, sz_srDiff, WHITE);
+			Format(sz_srDiff, 128, "%cWR: %c-%s%c", WHITE, LIGHTGREEN, sz_srDiff, WHITE);
 			if (zonegroup > 0)
-				Format(g_szLastSRDifference[client], 64, "SR:<font color='#5e5'>%s</font>", sz_srDiff_colorless);
+				Format(g_szLastSRDifference[client], 64, "WR:<font color='#5e5'>%s</font>", sz_srDiff_colorless);
 			else
-				Format(g_szLastSRDifference[client], 64, "SR:<font color='#5e5'>%s</font>", sz_srDiff_colorless);
+				Format(g_szLastSRDifference[client], 64, "WR:<font color='#5e5'>%s</font>", sz_srDiff_colorless);
 
 		}
 		else
 		{
 			Format(sz_srDiff_colorless, 128, "+%s", sz_srDiff);
-			Format(sz_srDiff, 128, "%cSR: %c+%s%c", WHITE, RED, sz_srDiff, WHITE);
+			Format(sz_srDiff, 128, "%cWR: %c+%s%c", WHITE, RED, sz_srDiff, WHITE);
 			if (zonegroup > 0)
-				Format(g_szLastSRDifference[client], 64, "SR:<font color='#f32'>%s</font>", sz_srDiff_colorless);
+				Format(g_szLastSRDifference[client], 64, "WR:<font color='#f32'>%s</font>", sz_srDiff_colorless);
 			else if (g_iCurrentStyle[client] > 0)
-				Format(g_szLastSRDifference[client], 64, "\tSR:<font color='#f32'>%s</font>", sz_srDiff_colorless);
+				Format(g_szLastSRDifference[client], 64, "\tWR:<font color='#f32'>%s</font>", sz_srDiff_colorless);
 			else
-				Format(g_szLastSRDifference[client], 64, "SR:<font color='#f32'>%s</font>", sz_srDiff_colorless);
+				Format(g_szLastSRDifference[client], 64, "WR:<font color='#f32'>%s</font>", sz_srDiff_colorless);
 		}
 		g_fLastDifferenceTime[client] = GetGameTime();
 	}
 	else
-		Format(sz_srDiff, 128, "%cSR: %cN/A%c", WHITE, LIGHTGREEN, WHITE);
+		Format(sz_srDiff, 128, "%cWR: %cN/A%c", WHITE, LIGHTGREEN, WHITE);
 
 
 	// Get client name for spectators
@@ -4067,7 +4037,7 @@ public void Checkpoint(int client, int zone, int zonegroup, float time)
 		FormatTimeFloat(client, time, 3, szTime, 32);
 
 		SendMapCheckpointForward(client, zonegroup, zone, time, szTime, szDiff_colorless, sz_srDiff_colorless);
-		
+
 		/* Add the Checkpoint data to current run list newrecord-cp-list*/
 		RunCheckpoints cpEnum;
 		cpEnum.cpNumber = g_iClientInZone[client][1] + 1;
@@ -4075,9 +4045,8 @@ public void Checkpoint(int client, int zone, int zonegroup, float time)
 		StrCat(cpEnum.pbDifference, sizeof(cpEnum.pbDifference), szDiff_colorless);
 		cpEnum.style = g_iCurrentStyle[client];
 		StrCat(cpEnum.wrDifference, sizeof(cpEnum.wrDifference), sz_srDiff_colorless);
-		
-		g_aCheckpointsDifference[client].PushArray(cpEnum, sizeof(RunCheckpoints));
 
+		g_aCheckpointsDifference[client].PushArray(cpEnum, sizeof(RunCheckpoints));
 		if (g_bCheckpointsEnabled[client] && g_iCpMessages[client])
 		{
 			CPrintToChat(client, "%t", "Misc30", g_szChatPrefix, g_iClientInZone[client][1] + 1, szTime, szDiff, sz_srDiff);
@@ -4111,9 +4080,7 @@ public void Checkpoint(int client, int zone, int zonegroup, float time)
 			Call_PushString("N/A");
 			Call_PushFloat(g_fCheckpointServerRecord[zonegroup][zone]);
 			Call_PushString(sz_srDiff_colorless);
-
-			/* Finish the call, get the result */
-			Call_Finish();
+			Call_PushCell(zone + 1);
 
 			/* Add the Checkpoint data to current run list newrecord-cp-list*/
 			RunCheckpoints cpEnum;
@@ -4124,6 +4091,9 @@ public void Checkpoint(int client, int zone, int zonegroup, float time)
 			cpEnum.style = g_iCurrentStyle[client];
 
 			g_aCheckpointsDifference[client].PushArray(cpEnum, sizeof(RunCheckpoints));
+
+			/* Finish the call, get the result */
+			Call_Finish();
 
 			if (percent > -1.0)
 			{
@@ -4905,7 +4875,7 @@ void PrintCSGOHUDText(int client, const char[] format, any ...)
 	VFormat(buff, sizeof(buff), format, 3);
 	Format(buff, sizeof(buff), "</font>%s<script>", buff);
 
-	Protobuf pb = view_as<Protobuf>(StartMessageOne("TextMsg", client, USERMSG_BLOCKHOOKS));
+	Protobuf pb = view_as<Protobuf>(StartMessageOne("TextMsg", client, USERMSG_BLOCKHOOKS)); // Make info panel text non reliable to increase update speed on high ping scenarios
 	pb.SetInt("msg_dst", 4);
 	pb.AddString("params", "#SFUI_ContractKillStart");
 	pb.AddString("params", buff);
@@ -4953,11 +4923,11 @@ public void PrintPracSrcp(int client, int style, int stage, int stage_rank, floa
 
 	if (f_srDiff > 0.0)
 	{
-		Format(sz_srDiff, 128, "%cSR: %c-%s%c", WHITE, LIGHTGREEN, sz_srDiff, WHITE);
+		Format(sz_srDiff, 128, "%cWR: %c-%s%c", WHITE, LIGHTGREEN, sz_srDiff, WHITE);
 	}
 	else
 	{
-		Format(sz_srDiff, 128, "%cSR: %c+%s%c", WHITE, RED, sz_srDiff, WHITE);
+		Format(sz_srDiff, 128, "%cWR: %c+%s%c", WHITE, RED, sz_srDiff, WHITE);
 	}
 
 	char szSpecMessage[512];

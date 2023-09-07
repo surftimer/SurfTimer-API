@@ -624,25 +624,18 @@ public void VoteExtend(int client)
 
 public Action Command_normalMode(int client, int args)
 {
-    if (!IsValidClient(client))
-        return Plugin_Handled;
+	if (!IsValidClient(client))
+		return Plugin_Handled;
 
-    Client_Stop(client, 1);
+	Client_Stop(client, 1);
 
-    if (g_bPracticeMode[client])
-        g_bPracticeMode[client] = false;
+	if (g_bPracticeMode[client])
+		g_bPracticeMode[client] = false;
 
-    g_iCurrentStyle[client] = 0;
-    g_iInitalStyle[client] = 0;
-    Format(g_szInitalStyle[client], 128, "Normal");
-    Format(g_szStyleHud[client], 32, "");
-    g_bRankedStyle[client] = true;
-    g_bFunStyle[client] = false;
+	Command_Restart(client, 1);
 
-    Command_Restart(client, 1);
-
-    CPrintToChat(client, "%t", "PracticeNormal", g_szChatPrefix);
-    return Plugin_Handled;
+	CPrintToChat(client, "%t", "PracticeNormal", g_szChatPrefix);
+	return Plugin_Handled;
 }
 
 public Action Command_createPlayerCheckpoint(int client, int args)
@@ -769,7 +762,7 @@ public Action Command_createPlayerCheckpoint(int client, int args)
 			}
 		}
 
-		// Save players Prac Srcp time when creating saveloc
+		// Save players Prac WRCP time when creating saveloc
 		if (g_bPracSrcpTimerActivated[player])
 		{
 			if (!g_bPracticeMode[player])
@@ -3135,7 +3128,7 @@ void CenterSpeedDisplay(int client, bool menu = false)
 				}
 
 				SetHudTextParams(fCSD_PosX, fCSD_PosY, update_rate / g_fTickrate + 0.1, displayColor[0], displayColor[1], displayColor[2], 255, 0, 0.0, 0.0, 0.0);
-
+				
 				Format(szSpeed, sizeof(szSpeed), "%i%s", RoundToNearest(g_fLastSpeed[client]), g_szPrespeedValue[client]);
 			}
 			// player not alive (check wether spec'ing a bot or another player)
@@ -3199,7 +3192,7 @@ void CenterSpeedDisplay(int client, bool menu = false)
 							}
 
 							SetHudTextParams(fCSD_PosX, fCSD_PosY, update_rate / g_fTickrate + 0.1, displayColor[0], displayColor[1], displayColor[2], 255, 0, 0.0, 0.0, 0.0);
-
+							
 							Format(szSpeed, sizeof(szSpeed), "%i%s", RoundToNearest(fSpeedHUD), g_szPrespeedValue[ObservedUser]);
 						}
 						// spec'ing player
@@ -3213,12 +3206,14 @@ void CenterSpeedDisplay(int client, bool menu = false)
 							}
 
 							SetHudTextParams(fCSD_PosX, fCSD_PosY, update_rate / g_fTickrate + 0.1, displayColor[0], displayColor[1], displayColor[2], 255, 0, 0.0, 0.0, 0.0);
-
+							
 							Format(szSpeed, sizeof(szSpeed), "%i%s", RoundToNearest(g_fLastSpeed[ObservedUser]), g_szPrespeedValue[ObservedUser]);
 						}
 					}
 				}
 			}
+			// [SM] Exception reported: ShowSyncHudText first requires a call to SetHudTextParams or SetHudTextParamsEx 
+			// if (view_as<int>(fSpeedHUD))
 			ShowSyncHudText(client, HUD_Handle, szSpeed);
 		}
 	}
