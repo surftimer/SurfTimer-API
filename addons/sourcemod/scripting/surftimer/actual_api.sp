@@ -1396,8 +1396,10 @@ public void apiSelectPlayerOptionsCallback(HTTPResponse response, DataPack data)
 			// "INSERT INTO ck_playeroptions2 (steamid, timer, hide, sounds, chat, viewmodel, autobhop, checkpoints, centrehud, module1c, module2c, module3c, module4c, module5c, module6c, sidehud, module1s, module2s, module3s, module4s, module5s) VALUES('%s', '%i', '%i', '%i', '%i', '%i', '%i', '%i', '%i', '%i', '%i', '%i', '%i', '%i', '%i', '%i', '%i', '%i', '%i', '%i', '%i');";
 			char apiRoute[512];
 			FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/insertPlayerOptions?steamid32=%s", g_szApiHost, g_szSteamID[client]);
+			// Prepare API call body
+			JSONObject jsonObject = JSONObject.FromString("{}");
 
-			DataPack dp = new DataPack();
+			DataPack   dp		  = new DataPack();
 			dp.WriteString("sql_insertPlayerOptions-cb-nested");
 			dp.WriteFloat(GetGameTime());
 			dp.Reset();
@@ -1405,7 +1407,7 @@ public void apiSelectPlayerOptionsCallback(HTTPResponse response, DataPack data)
 			PrintToServer("API ROUTE: %s", apiRoute);
 			/* RipExt */
 			HTTPRequest request = new HTTPRequest(apiRoute);
-			request.Get(apiPostCallback, dp);	 // does not need a body so leaving as GET lul
+			request.Post(jsonObject, apiPostCallback, dp);	  // does not need a body so leaving as GET lul
 
 			g_bTimerEnabled[client]		  = true;
 			g_bHide[client]				  = false;
