@@ -47,7 +47,7 @@ public void apiPostCallback(HTTPResponse response, DataPack data)
 		data.ReadString(steamId, sizeof(steamId));
 		FormatTimeFloat(0, runTime, 3, sTime, sizeof(sTime));
 	}
-	else if (StrEqual(func, "sql_insertPlayerOptions-nested"))
+	else if (StrEqual(func, "sql_insertPlayerOptions-cb-nested"))
 	{
 		// char  sTime[64], steamId[64];
 		// float runTime = data.ReadFloat();
