@@ -300,7 +300,7 @@ public void db_WipePlayer(int client, char szSteamID[32])
 
 	Format(szQuery, sizeof(szQuery), "DELETE FROM ck_playertimes WHERE steamid = \"%s\";", szSteamID);
 	tTransaction.AddQuery(szQuery, 1);
-	Format(szQuery, sizeof(szQuery), "DELETE FROM ck_bonus WHERE steamid = \"%s\";", szSteamID);
+	Format(szQuery, sizeof(szQuery), sql_stray_deleteWipePlayerBonus, szSteamID);
 	tTransaction.AddQuery(szQuery, 2);
 	Format(szQuery, sizeof(szQuery), "DELETE FROM ck_checkpoints WHERE steamid = \"%s\";", szSteamID);
 	tTransaction.AddQuery(szQuery, 3);
@@ -725,7 +725,7 @@ public void sql_CalcuatePlayerRankCallback(Handle owner, Handle hndl, const char
 
 		// Next up, calculate bonus points:
 		char szQuery[512];
-		Format(szQuery, 512, "SELECT mapname, (SELECT count(1)+1 FROM ck_bonus b WHERE a.mapname=b.mapname AND a.runtime > b.runtime AND a.zonegroup = b.zonegroup AND b.style = %i) AS `rank`, (SELECT count(1) FROM ck_bonus b WHERE a.mapname = b.mapname AND a.zonegroup = b.zonegroup AND b.style = %i) as total FROM ck_bonus a WHERE steamid = '%s' AND style = %i;", style, style, szSteamId, style);
+		Format(szQuery, sizeof(szQuery), sql_stray_point_calc_countFinishedBonus, style, style, szSteamId, style);
 		SQL_TQuery(g_hDb, sql_CountFinishedBonusCallback, szQuery, pack, DBPrio_Low);
 	}
 	else
@@ -2528,7 +2528,8 @@ public int MenuHandler_SelectBonusinMap(Handle sMenu, MenuAction action, int cli
 			char splits[2][128];
 			GetMenuItem(sMenu, item, aID, sizeof(aID));
 			ExplodeString(aID, "-", splits, sizeof(splits), sizeof(splits[]));
-
+			// PrintToServer("=============== Full splits: %s", aID);
+			// PrintToServer("=============== splits[0]: %s", splits[0]); 
 			db_selectBonusTopSurfers(client, splits[0], StringToInt(splits[1]), 0);
 		}
 		case MenuAction_End:
@@ -4290,7 +4291,7 @@ public void db_viewBonusPRinfoCallback(Handle owner, Handle hndl, const char[] e
 		g_fAttempts[client][zonegroup] = 0.0;
 		g_fstComplete[client][zonegroup] = 0.0;
 		
-		Format(szQuery, 1024, "SELECT runtime, zonegroup FROM ck_bonus WHERE steamid = '%s' AND mapname = '%s' AND zonegroup = '%i';", szSteamID, szMapName, zonegroup);
+		Format(szQuery, sizeof(szQuery), sql_stray_pr_bonusInfo, szSteamID, szMapName, zonegroup);
 		//PrintToConsole(client,szQuery);
 
 		SQL_TQuery(g_hDb, db_bonusprinforuntimecallback, szQuery, pack, DBPrio_Low);
@@ -4718,7 +4719,7 @@ public void db_currentBonusRunRank(int client, int style, int zGroup)
 
 	float runtime = g_fCurrentRunTime[client];
 
-	Format(szQuery, 512, "SELECT count(runtime)+1 FROM ck_bonus WHERE mapname = '%s' AND zonegroup = '%i' AND runtime < '%f' AND style = '%i';", g_szMapName, zGroup, runtime, style);
+	Format(szQuery, sizeof(szQuery), sql_stray_viewBonusRunRank, g_szMapName, zGroup, runtime, style);
 	SQL_TQuery(g_hDb, db_viewBonusRunRank, szQuery, pack, DBPrio_Low);
 }
 
@@ -4868,8 +4869,7 @@ public void db_viewPersonalBonusRecords(int client, char szSteamId[32]) // API'd
 	else
 	{
 		char szQuery[1024];
-		// "SELECT runtime, zonegroup, style FROM ck_bonus WHERE steamid = '%s AND mapname = '%s' AND runtime > '0.0'";
-		Format(szQuery, 1024, sql_selectPersonalBonusRecords, szSteamId, g_szMapName);
+		Format(szQuery, sizeof(szQuery), sql_selectPersonalBonusRecords, szSteamId, g_szMapName);
 		SQL_TQuery(g_hDb, SQL_selectPersonalBonusRecordsCallback, szQuery, client, DBPrio_Low);
 	}
 }
@@ -5572,7 +5572,7 @@ void db_deleteZonesInGroup(int client)
 	// Format(szQuery, 258, "UPDATE ck_zones SET zonegroup = zonegroup-1 WHERE zonegroup > %i AND mapname = '%s';", g_CurrentSelectedZoneGroup[client], g_szMapName);
 	// SQL_AddQuery(h_DeleteZoneGroup, szQuery);
 
-	Format(szQuery, 258, "DELETE FROM ck_bonus WHERE zonegroup = %i AND mapname = '%s';", g_CurrentSelectedZoneGroup[client], g_szMapName);
+	Format(szQuery, sizeof(szQuery), sql_stray_deleteSpecificBonus, g_CurrentSelectedZoneGroup[client], g_szMapName);
 	SQL_AddQuery(h_DeleteZoneGroup, szQuery);
 
 	// Format(szQuery, 258, "UPDATE ck_bonus SET zonegroup = zonegroup-1 WHERE zonegroup > %i AND mapname = '%s';", g_CurrentSelectedZoneGroup[client], g_szMapName);
@@ -8137,12 +8137,11 @@ public void SQL_selectPersonalPrestrafeSpeeds_StagesCallback(Handle owner, Handl
 	}
 }
 
-public void selectPersonalPrestrafeSpeeds_Bonus(int client, char szSteamId[32]){
-
+public void selectPersonalPrestrafeSpeeds_Bonus(int client, char szSteamId[32])
+{
 	char szQuery[1024];
-	Format(szQuery, sizeof(szQuery), "SELECT zonegroup, style, velStartXY, velStartXYZ, velStartZ FROM ck_bonus WHERE steamid = '%s' AND mapname = '%s' AND runtime > '0.0';", szSteamId, g_szMapName);
+	Format(szQuery, sizeof(szQuery), sql_stray_selectPersonalBonusPrestrafeSpeeds, szSteamId, g_szMapName);
 	SQL_TQuery(g_hDb, SQL_selectPersonalPrestrafeSpeeds_BonusCallback, szQuery, client, DBPrio_Low);
-
 }
 
 public void SQL_selectPersonalPrestrafeSpeeds_BonusCallback(Handle owner, Handle hndl, const char[] error, any client)
@@ -8905,7 +8904,7 @@ public void db_viewMapRankBonusStyle(int client, int zgroup, int type, int style
 	WritePackCell(pack, type);
 	WritePackCell(pack, style);
 
-	Format(szQuery, 1024, "SELECT name FROM ck_bonus WHERE runtime <= (SELECT runtime FROM ck_bonus WHERE steamid = '%s' AND mapname= '%s' AND style = %i AND runtime > 0.0 AND zonegroup = %i) AND mapname = '%s' AND style = %i AND zonegroup = %i;", g_szSteamID[client], g_szMapName, style, zgroup, g_szMapName, style, zgroup);
+	Format(szQuery, sizeof(szQuery), sql_stray_selectMapRankBonusStyle, g_szSteamID[client], g_szMapName, style, zgroup, g_szMapName, style, zgroup);
 	SQL_TQuery(g_hDb, db_viewMapRankBonusStyleCallback, szQuery, pack, DBPrio_Low);
 }
 
@@ -8988,7 +8987,7 @@ public void db_currentBonusStyleRunRank(int client, int zGroup, int style)
 	WritePackCell(pack, client);
 	WritePackCell(pack, zGroup);
 	WritePackCell(pack, style);
-	Format(szQuery, 512, "SELECT count(runtime)+1 FROM ck_bonus WHERE mapname = '%s' AND zonegroup = '%i' AND style = '%i' AND runtime < %f", g_szMapName, zGroup, style, g_fFinalTime[client]);
+	Format(szQuery, sizeof(szQuery), sql_stray_viewBonusStyleRunRank, g_szMapName, zGroup, style, g_fFinalTime[client]);
 	SQL_TQuery(g_hDb, db_viewBonusStyleRunRank, szQuery, pack, DBPrio_Low);
 }
 
@@ -9023,7 +9022,7 @@ public void db_viewPersonalBonusStylesRecords(int client, char szSteamId[32], in
 
 	char szQuery[1024];
 	// "SELECT runtime, zonegroup FROM ck_bonus WHERE steamid = '%s' AND mapname = '%s' AND runtime > '0.0'";
-	Format(szQuery, 1024, "SELECT runtime, zonegroup FROM ck_bonus WHERE steamid = '%s' AND mapname = '%s' AND style = '%i' AND runtime > '0.0'", szSteamId, g_szMapName, style);
+	Format(szQuery, sizeof(szQuery), sql_stray_selectPersonalBonusStylesRecords, szSteamId, g_szMapName, style);
 	SQL_TQuery(g_hDb, SQL_selectPersonalBonusStylesRecordsCallback, szQuery, pack, DBPrio_Low);
 }
 
@@ -9595,11 +9594,31 @@ public void db_SelectTotalMapCompletesUnknownCallback(Handle owner, Handle hndl,
 	}
 }
 
-public void db_selectBonusRank(int client, char szSteamId[32], char szMapName[128], int bonus)
+public void db_selectBonusRank(int client, char szSteamId[32], char szMapName[128], int bonus) // API'd up
 {
-	char szQuery[1024];
-	Format(szQuery, 1024, "SELECT `steamid`, `name`, `mapname`, `runtime`, zonegroup FROM `ck_bonus` WHERE `steamid` = '%s' AND `mapname` LIKE '%c%s%c' AND zonegroup = %i AND style = 0 LIMIT 1;", szSteamId, PERCENT, szMapName, PERCENT, bonus);
-	SQL_TQuery(g_hDb, db_selectBonusRankCallback, szQuery, client, DBPrio_Low);
+	if (GetConVarBool(g_hSurfApiEnabled))
+	{
+		char apiRoute[512];
+			
+		DataPack dp = new DataPack();
+		dp.WriteString("db_selectBonusRank");
+		dp.WriteFloat(GetGameTime());
+		dp.WriteCell(client);
+		dp.Reset();
+
+		FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/selectPlayerSpecificBonusData?steamid32=%s&mapname=%s&zonegroup=%i", g_szApiHost, szSteamId, szMapName, bonus);
+		PrintToServer("API LINK: %s", apiRoute);
+		/* RipExt - GET */
+		HTTPRequest request = new HTTPRequest(apiRoute);
+		request.Get(apiSelectPlayerSpecificBonusDataCallback, dp);
+	}
+	else
+	{
+		char szQuery[1024];
+		Format(szQuery, sizeof(szQuery), sql_stray_selectPlayerSpecificBonusData, szSteamId, PERCENT, szMapName, PERCENT, bonus);
+		
+		SQL_TQuery(g_hDb, db_selectBonusRankCallback, szQuery, client, DBPrio_Low);
+	}
 }
 
 public void db_selectBonusRankCallback(Handle owner, Handle hndl, const char[] error, any client)
@@ -9634,8 +9653,7 @@ public void db_selectBonusRankCallback(Handle owner, Handle hndl, const char[] e
 		WritePackCell(pack, bonus);
 
 		char szQuery[1024];
-
-		Format(szQuery, 1024, "SELECT count(name) FROM `ck_bonus` WHERE `mapname` = '%s' AND zonegroup = %i AND style = 0 AND runtime > 0.0;", mapname, bonus);
+		Format(szQuery, sizeof(szQuery), sql_stray_selectTotalBonusCompletes, mapname, bonus);
 		SQL_TQuery(g_hDb, db_SelectTotalBonusCompletesCallback, szQuery, pack, DBPrio_Low);
 	}
 	else
@@ -9669,7 +9687,7 @@ public void db_SelectTotalBonusCompletesCallback(Handle owner, Handle hndl, cons
 
 		char szQuery[1024];
 
-		Format(szQuery, 1024, "SELECT name,mapname FROM ck_bonus WHERE runtime <= (SELECT runtime FROM ck_bonus WHERE steamid = '%s' AND mapname = '%s' AND zonegroup = %i AND style = 0 AND runtime > -1.0) AND mapname = '%s' AND zonegroup = %i AND runtime > -1.0 ORDER BY runtime;", szSteamId, mapname, bonus, mapname, bonus);
+		Format(szQuery, sizeof(szQuery), sql_stray_selectPlayersBonusRank, szSteamId, mapname, bonus, mapname, bonus);
 		SQL_TQuery(g_hDb, db_SelectPlayersBonusRankCallback, szQuery, pack, DBPrio_Low);
 	}
 	else
@@ -11798,7 +11816,7 @@ public void db_viewPRinfoMapRankBonus(int client, char szSteamID[32], char szMap
 
 	char szQuery[512];
 
-	Format(szQuery, 1024, "SELECT COUNT(*), steamid FROM ck_bonus WHERE runtime <= (SELECT runtime FROM ck_bonus WHERE steamid = '%s' AND mapname LIKE '%c%s%c' AND runtime > -1.0 AND zonegroup = %i AND style = 0) AND mapname = '%s' AND zonegroup = %i AND style = 0;", szSteamID, PERCENT, szMapName, PERCENT, zonegroup, szMapName, zonegroup);
+	Format(szQuery, sizeof(szQuery), sql_stray_viewPRinfoMapRankBonusCallback, szSteamID, PERCENT, szMapName, PERCENT, zonegroup, szMapName, zonegroup);
 	//PrintToConsole(client, "QUERY %s", szQuery);
 	SQL_TQuery(g_hDb, db_viewPRinfoMapRankBonusCallback, szQuery, pack, DBPrio_Low);
 }
@@ -11855,7 +11873,7 @@ public void db_GetRankSteamID(int client, char szMapName[128], int rank, int zon
 		SQL_TQuery(g_hDb, SQL_GetRankSteamIDCallback, szQuery, pack, DBPrio_Low);
 	}
 	else{
-		Format(szQuery, 1024, "SELECT steamid FROM ck_bonus WHERE mapname = '%s' AND style = 0 AND runtime > -1.0 AND zonegroup = '%i' ORDER BY runtime ASC LIMIT %i, 1;", szMapName, zonegroup, rank - 1);
+		Format(szQuery, sizeof(szQuery), sql_stray_getRankSteamIdBonus, szMapName, zonegroup, rank - 1);
 		//PrintToConsole(client, "QUERY %s", szQuery);
 		SQL_TQuery(g_hDb, SQL_GetRankSteamIDCallback, szQuery, pack, DBPrio_Low);
 	}

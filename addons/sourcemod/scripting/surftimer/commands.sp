@@ -3930,6 +3930,7 @@ public int BonusTopMenuHandler(Menu menu, MenuAction action, int param1, int par
 {
 	if (action == MenuAction_Select)
 	{
+		// /btop <mapname> currently broken when using API, suspecting unfinished `ck_bonus` table in API
 		db_selectBonusTopSurfers(param1, g_szMapName, param2 + 1, g_iWrcpMenuStyleSelect[param1]);
 	}
 	else if (action == MenuAction_End)

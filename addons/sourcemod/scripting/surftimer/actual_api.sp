@@ -47,7 +47,7 @@ public void apiPostCallback(HTTPResponse response, DataPack data)
 		data.ReadString(steamId, sizeof(steamId));
 		FormatTimeFloat(0, runTime, 3, sTime, sizeof(sTime));
 	}
-	else if (StrEqual(func, "sql_insertPlayerOptions"))
+	else if (StrEqual(func, "sql_insertPlayerOptions-nested"))
 	{
 		// char  sTime[64], steamId[64];
 		// float runTime = data.ReadFloat();
@@ -1231,6 +1231,149 @@ public void apiSelectBonusTopSurfersCallback(HTTPResponse response, DataPack dat
 	return;
 }
 
+public void apiSelectPlayerSpecificBonusDataCallback(HTTPResponse response, DataPack data)
+{
+	char func[128];
+	data.ReadString(func, sizeof(func));
+	float fTime	 = data.ReadFloat();
+	int	  client = data.ReadCell();
+	delete data;
+
+	if (response.Status != HTTPStatus_OK)
+	{
+		if (response.Status == HTTPStatus_NoContent)
+		{
+			CPrintToChat(client, "%t", "SQL28", g_szChatPrefix);
+			LogQueryTime("[Surf API] No entries found (%s)", func);
+			return;
+		}
+		LogError("[Surf API] API Error %i (%s)", response.Status, func);
+		return;
+	}
+
+	JSONObject jsonObject = view_as<JSONObject>(response.Data);
+
+	char	   szSteamId[32], playername[MAX_NAME_LENGTH], mapname[128], apiRoute[512];
+	jsonObject.GetString("steamid", szSteamId, sizeof(szSteamId));
+	jsonObject.GetString("name", playername, sizeof(playername));
+	jsonObject.GetString("mapname", mapname, sizeof(mapname));
+	float runtimepro = jsonObject.GetFloat("runtime");
+	int	  bonus		 = jsonObject.GetInt("zonegroup");
+
+	FormatTimeFloat(client, runtimepro, 3, g_szRuntimepro[client], sizeof(g_szRuntimepro));
+
+	DataPack dp = new DataPack();
+	dp.WriteString("db_SelectTotalBonusCompletesCallback-cb-nested");
+	dp.WriteFloat(GetGameTime());
+	dp.WriteCell(client);
+	dp.WriteString(szSteamId);
+	dp.WriteString(playername);
+	dp.WriteString(mapname);
+	dp.WriteCell(bonus);
+	dp.Reset();
+
+	FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/selectTotalBonusCompletes?mapname=%s&zonegroup=%i", g_szApiHost, mapname, bonus);
+	PrintToServer("API LINK: %s", apiRoute);
+	/* RipExt - GET */
+	HTTPRequest request = new HTTPRequest(apiRoute);
+	request.Get(apiSelectTotalBonusCompletesCallback, dp);
+
+	delete jsonObject;
+
+	LogQueryTime("====== [Surf API] : Finished %s in: %f", func, GetGameTime() - fTime);
+}
+
+public void apiSelectTotalBonusCompletesCallback(HTTPResponse response, DataPack data)
+{
+	char func[128], szSteamId[32], playername[MAX_NAME_LENGTH], mapname[128], apiRoute[512];
+	data.ReadString(func, sizeof(func));
+	float fTime	 = data.ReadFloat();
+	int	  client = data.ReadCell();
+	data.ReadString(szSteamId, sizeof(szSteamId));
+	data.ReadString(playername, sizeof(playername));
+	data.ReadString(mapname, sizeof(mapname));
+	int bonus = data.ReadCell();
+
+	if (response.Status != HTTPStatus_OK)
+	{
+		delete data;
+		if (response.Status == HTTPStatus_NoContent)
+		{
+			LogQueryTime("[Surf API] No entries found (%s)", func);
+			return;
+		}
+		LogError("[Surf API] API Error %i (%s)", response.Status, func);
+		return;
+	}
+
+	JSONObject jsonObject	   = view_as<JSONObject>(response.Data);
+	g_totalPlayerTimes[client] = jsonObject.GetInt("count(name)");
+	delete jsonObject;
+
+	DataPack dp = new DataPack();
+	dp.WriteString("db_SelectPlayersBonusRankCallback-cb-nested");
+	dp.WriteFloat(GetGameTime());
+	dp.WriteCell(client);
+	dp.WriteString(szSteamId);
+	dp.WriteString(playername);
+	dp.WriteString(mapname);
+	dp.WriteCell(bonus);
+	dp.Reset();
+
+	FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/selectPlayersBonusRank?steamid32=%s&mapname=%s&zonegroup=%i", g_szApiHost, szSteamId, mapname, bonus);
+	PrintToServer("API LINK: %s", apiRoute);
+	/* RipExt - GET */
+	HTTPRequest request = new HTTPRequest(apiRoute);
+	request.Get(apiSelectPlayersBonusRankCallback, dp);
+
+	LogQueryTime("====== [Surf API] : Finished %s in: %f", func, GetGameTime() - fTime);
+}
+
+public void apiSelectPlayersBonusRankCallback(HTTPResponse response, DataPack data)
+{
+	char func[128], out[1024], szSteamId[32], playername[MAX_NAME_LENGTH], mapname[128];
+	data.ReadString(func, sizeof(func));
+	float fTime	 = data.ReadFloat();
+	int	  client = data.ReadCell();
+	data.ReadString(szSteamId, sizeof(szSteamId));
+	data.ReadString(playername, sizeof(playername));
+	data.ReadString(mapname, sizeof(mapname));
+	int bonus = data.ReadCell();
+	delete data;
+
+	if (response.Status != HTTPStatus_OK)
+	{
+		if (response.Status == HTTPStatus_NotFound)
+		{
+			LogQueryTime("[Surf API] No entries found (%s)", func);
+			return;
+		}
+		LogError("[Surf API] API Error %i (%s)", response.Status, func);
+		return;
+	}
+
+	// Indicate that the response contains a JSON array
+	JSONArray jsonArray = view_as<JSONArray>(response.Data);
+	if (jsonArray.Length <= 0)
+	{
+		// Array is empty stop here
+		// LogError("[Surf API] API Returned empty array (%s)", func);
+		delete jsonArray;
+		return;
+	}
+
+	jsonArray.ToString(out, sizeof(out), JSON_DECODE_ANY);
+	// PrintToServer("%s: %s", func, out);
+
+	int rank = jsonArray.Length;
+	CPrintToChatAll("%t", "SQL36", g_szChatPrefix, playername, rank, g_totalPlayerTimes[client], g_szRuntimepro[client], bonus, mapname);
+
+	delete jsonArray;
+	LogQueryTime("====== [Surf API] : Finished %s in: %f", func, GetGameTime() - fTime);
+
+	return;
+}
+
 /* ck_playeroptions2 */
 public void apiSelectPlayerOptionsCallback(HTTPResponse response, DataPack data)
 {
@@ -1255,7 +1398,7 @@ public void apiSelectPlayerOptionsCallback(HTTPResponse response, DataPack data)
 			FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/insertPlayerOptions?steamid32=%s", g_szApiHost, g_szSteamID[client]);
 
 			DataPack dp = new DataPack();
-			dp.WriteString("sql_insertPlayerOptions");
+			dp.WriteString("sql_insertPlayerOptions-cb-nested");
 			dp.WriteFloat(GetGameTime());
 			dp.Reset();
 
@@ -1591,7 +1734,7 @@ public void apiSelectRankedPlayersRankCallback(HTTPResponse response, DataPack d
 
 		delete jsonArray;
 	}
-	else if (StrEqual(func, "db_viewPlayerProfile") && StrEqual(func, "db_viewPlayerProfile-unknownPlayer"))
+	else if (StrEqual(func, "db_viewPlayerProfile") || StrEqual(func, "db_viewPlayerProfile-unknownPlayer"))
 	{
 		int	 client = data.ReadCell();
 		int	 style	= data.ReadCell();
@@ -1619,18 +1762,24 @@ public void apiSelectRankedPlayersRankCallback(HTTPResponse response, DataPack d
 			return;
 		}
 
-		data.WriteCell(jsonArray.Length);
-
 		char apiRoute[512];
 		FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/selectPlayerProfile?steamid32=%s&style=%i", g_szApiHost, szSteamId, style);
 
-		data.Reset();
+		DataPack dp = new DataPack();
+		dp.WriteString("selectPlayerProfile-cb-nested");
+		dp.WriteFloat(GetGameTime());
+		dp.WriteCell(client);
+		dp.WriteCell(style);
+		dp.WriteString(szSteamId);
+		dp.WriteString(szName);
+		dp.WriteCell(jsonArray.Length);
+		dp.Reset();
 
 		PrintToServer("API ROUTE: %s", apiRoute);
 
 		/* RipExt */
 		HTTPRequest request = new HTTPRequest(apiRoute);
-		request.Get(apiSelectPlayerProfileCallback, data);
+		request.Get(apiSelectPlayerProfileCallback, dp);
 
 		delete jsonArray;
 	}
@@ -1659,7 +1808,7 @@ public void apiSelectRankedPlayersRankCallback(HTTPResponse response, DataPack d
 		delete jsonObject;
 
 		DataPack dp = new DataPack();
-		dp.WriteString("selectRankedPlayersRank - from unknown");
+		dp.WriteString("selectRankedPlayersRank-cb-nested from unknown");
 		dp.WriteFloat(GetGameTime());
 		dp.WriteString(szSteamId);
 		dp.WriteString(szName);
@@ -1673,7 +1822,7 @@ public void apiSelectRankedPlayersRankCallback(HTTPResponse response, DataPack d
 		HTTPRequest request = new HTTPRequest(apiRoute);
 		request.Get(apiSelectRankedPlayersRankCallback, dp);
 	}
-	else if (StrEqual(func, "selectRankedPlayersRank - from unknown"))
+	else if (StrEqual(func, "selectRankedPlayersRank-cb-nested from unknown"))
 	{
 		char szSteamId[32], szName[128];
 		data.ReadString(szSteamId, sizeof(szSteamId));
