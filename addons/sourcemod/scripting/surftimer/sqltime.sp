@@ -1,7 +1,7 @@
 public void db_viewPlayerInfo(int client, char szSteamId[32])
 {
 	char szQuery[512];
-	Format(szQuery, 512, "SELECT steamid, steamid64, name, country, lastseen, joined, connections, timealive, timespec FROM ck_playerrank WHERE steamid = '%s';", szSteamId);
+	Format(szQuery, sizeof(szQuery), sql_stray_viewPlayerInfo, szSteamId);
 	SQL_TQuery(g_hDb, SQL_ViewPlayerInfoCallback, szQuery, client, DBPrio_Low);
 }
 

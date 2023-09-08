@@ -1624,10 +1624,10 @@ int g_iContinentTopStyleSelected[MAXPLAYERS + 1];
 
 /* Surf API */
 char g_szApiHost[256];
-char api_PostLatestRec[]			= "{\"steamid32\":\"%s\",\"name\":\"%s\",\"runtime\":%f,\"mapname\":\"%s\"}";
+char api_PostLatestRec[]		 	= "{\"steamid32\":\"%s\",\"name\":\"%s\",\"runtime\":%f,\"mapname\":\"%s\"}";
 char api_MaptierModel[]		 	 	= "{\"mapname\":\"%s\",\"tier\":%i,\"mappername\":\"%s\"}";
 char api_DeleteCheckpoint[]		 	= "{\"mapname\":\"%s\"}";
 char api_insertBonus[]			 	= "{\"steamid32\":\"%s\",\"name\":\"%s\",\"mapname\":\"%s\",\"runtime\":%f,\"zonegroup\":%i,\"velStartXY\":%f,\"velStartXYZ\":%f,\"velStartZ\":%f}";
 char api_updatePlayerOptions[]	 	= "{\"timer\":%i,\"hide\":%i,\"sounds\":%i,\"chat\":%i,\"viewmodel\":%i,\"autobhop\":%i,\"checkpoints\":%i,\"gradient\":%i,\"speedmode\":%i,\"centrespeed\":%i,\"centrehud\":%i,\"teleside\":%i,\"module1c\":%i,\"module2c\":%i,\"module3c\":%i,\"module4c\":%i,\"module5c\":%i,\"module6c\":%i,\"sidehud\":%i,\"module1s\":%i,\"module2s\":%i,\"module3s\":%i,\"module4s\":%i,\"module5s\":%i,\"prestrafe\":%i,\"cpmessages\":%i,\"wrcpmessages\":%i,\"hints\":%i,\"csd_update_rate\":%i,\"csd_pos_x\":%i,\"csd_pos_y\":%i,\"csd_r\":%i,\"csd_g\":%i,\"csd_b\":%i,\"prespeedmode\":%i,\"steamid32\":\"%s\"}";
-char api_updatePlayerRankPoints2[]  = "{\"name\":\"%s\",\"points\":%i,\"wrpoints\":%i,\"wrbpoints\":%i,\"wrcppoints\":%i,\"top10points\":%i,\"groupspoints\":%i,\"mappoints\":%i,\"bonuspoints\":%i,\"finishedmapspro\":%i,\"finishedbonuses\":%i,\"finishedstages\":%i,\"wrs\":%i,\"wrbs\":%i,\"wrcps\":%i,\"top10s\":%i,\"groups\":%i,\"country\":\"%s\",\"countryCode\":\"%s\",\"continentCode\":\"%s\",\"steamid32\":\"%s\",\"style\":%i}";
+char api_updatePlayerRankPoints2[] 	= "{\"name\":\"%s\",\"points\":%i,\"wrpoints\":%i,\"wrbpoints\":%i,\"wrcppoints\":%i,\"top10points\":%i,\"groupspoints\":%i,\"mappoints\":%i,\"bonuspoints\":%i,\"finishedmapspro\":%i,\"finishedbonuses\":%i,\"finishedstages\":%i,\"wrs\":%i,\"wrbs\":%i,\"wrcps\":%i,\"top10s\":%i,\"groups\":%i,\"country\":\"%s\",\"countryCode\":\"%s\",\"continentCode\":\"%s\",\"steamid32\":\"%s\",\"style\":%i}";
 char api_insertPlayerRank[] 		= "{\"steamid32\":\"%s\",\"steamid64\":%i,\"name\":\"%s\",\"country\":\"%s\",\"countryCode\":\"%s\",\"continentCode\":\"%s\",\"joined\":%i,\"style\":%i}";

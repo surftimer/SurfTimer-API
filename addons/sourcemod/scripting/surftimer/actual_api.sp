@@ -365,7 +365,7 @@ public void apiSelectMapTierCallback(HTTPResponse response, DataPack data)
 	if (response.Status != HTTPStatus_OK)
 	{
 		g_bTierEntryFound = false;
-		if (response.Status == HTTPStatus_NotFound)
+		if (response.Status == HTTPStatus_NoContent)
 		{
 			LogQueryTime("[Surf API] Map not found (%s)", func);
 			return;
@@ -688,7 +688,7 @@ public void apiSelectStageAttemptsCallback(HTTPResponse response, DataPack data)
 
 	if (response.Status != HTTPStatus_OK)
 	{
-		if (response.Status == HTTPStatus_NotFound)
+		if (response.Status == HTTPStatus_NoContent)
 		{
 			LogQueryTime("[Surf API] No entries found (%s)", func);
 			return;
@@ -1396,18 +1396,19 @@ public void apiSelectPlayerOptionsCallback(HTTPResponse response, DataPack data)
 			// "INSERT INTO ck_playeroptions2 (steamid, timer, hide, sounds, chat, viewmodel, autobhop, checkpoints, centrehud, module1c, module2c, module3c, module4c, module5c, module6c, sidehud, module1s, module2s, module3s, module4s, module5s) VALUES('%s', '%i', '%i', '%i', '%i', '%i', '%i', '%i', '%i', '%i', '%i', '%i', '%i', '%i', '%i', '%i', '%i', '%i', '%i', '%i', '%i');";
 			char apiRoute[512];
 			FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/insertPlayerOptions?steamid32=%s", g_szApiHost, g_szSteamID[client]);
+
 			// Prepare API call body
 			JSONObject jsonObject = JSONObject.FromString("{}");
 
 			DataPack   dp		  = new DataPack();
-			dp.WriteString("sql_insertPlayerOptions-cb-nested");
+			dp.WriteString("sql_insertPlayerOptions-cb-nested");	// Actual new player I believe :thonk:
 			dp.WriteFloat(GetGameTime());
 			dp.Reset();
 
 			PrintToServer("API ROUTE: %s", apiRoute);
 			/* RipExt */
 			HTTPRequest request = new HTTPRequest(apiRoute);
-			request.Post(jsonObject, apiPostCallback, dp);	  // does not need a body so leaving as GET lul
+			request.Post(jsonObject, apiPostCallback, dp);
 
 			g_bTimerEnabled[client]		  = true;
 			g_bHide[client]				  = false;
