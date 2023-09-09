@@ -56,14 +56,14 @@ char sql_insertPlayerRank[]							= "INSERT INTO ck_playerrank (steamid, steamid
 char sql_updatePlayerRankPoints[]					= "UPDATE ck_playerrank SET name ='%s', points ='%i', wrpoints = %i, wrbpoints = %i, wrcppoints = %i, top10points = %i, groupspoints = %i, mappoints = %i, bonuspoints = %i, finishedmapspro='%i', finishedbonuses = %i, finishedstages = %i, wrs = %i, wrbs = %i, wrcps = %i, top10s = %i, `groups` = %i where steamid='%s' AND style = %i;";
 char sql_updatePlayerRankPoints2[]					= "UPDATE ck_playerrank SET name ='%s', points ='%i', wrpoints = %i, wrbpoints = %i, wrcppoints = %i, top10points = %i, groupspoints = %i, mappoints = %i, bonuspoints = %i, finishedmapspro='%i', finishedbonuses = %i, finishedstages = %i, wrs = %i, wrbs = %i, wrcps = %i, top10s = %i, `groups` = %i, country = '%s', countryCode = '%s', continentCode = '%s' where steamid='%s' AND style = %i;";
 char sql_updatePlayerRank[]							= "UPDATE ck_playerrank SET finishedmaps ='%i', finishedmapspro='%i' where steamid='%s' AND style = '%i';";
-char sql_selectPlayerName[]							= "SELECT name FROM ck_playerrank where steamid = '%s'";
+char sql_selectPlayerName[]							= "SELECT name FROM ck_playerrank where steamid = '%s'"; // merged with sql_stray_point_calc_playerRankName
 char sql_UpdateLastSeenMySQL[]						= "UPDATE ck_playerrank SET lastseen = UNIX_TIMESTAMP() where steamid = '%s';";
 char sql_UpdateLastSeenSQLite[]						= "UPDATE ck_playerrank SET lastseen = date('now') where steamid = '%s';";
 char sql_selectTopPlayers[]							= "SELECT name, points, finishedmapspro, steamid FROM ck_playerrank WHERE style = %i ORDER BY points DESC LIMIT 100";
 char sql_selectRankedPlayer[]						= "SELECT steamid, name, points, finishedmapspro, country, lastseen, timealive, timespec, connections, readchangelog, style, countryCode, continentCode from ck_playerrank where steamid='%s';";
 char sql_selectRankedPlayersRank[]					= "SELECT name FROM ck_playerrank WHERE style = %i AND points >= (SELECT points FROM ck_playerrank WHERE steamid = '%s' AND style = %i) ORDER BY points;";
 char sql_selectRankedPlayers[]						= "SELECT steamid, name from ck_playerrank where points > 0 AND style = 0 ORDER BY points DESC LIMIT 0, 1067;";
-char sql_CountRankedPlayers[]						= "SELECT COUNT(steamid) FROM ck_playerrank WHERE style = %i;";
+// char sql_CountRankedPlayers[]						= "SELECT COUNT(steamid) FROM ck_playerrank WHERE style = %i;"; // non ranked players ew
 char sql_CountRankedPlayers2[]						= "SELECT COUNT(steamid) FROM ck_playerrank where points > 0 AND style = %i;";
 char sql_selectPlayerProfile[]						= "SELECT steamid, steamid64, name, country, points, wrpoints, wrbpoints, wrcppoints, top10points, groupspoints, mappoints, bonuspoints, finishedmapspro, finishedbonuses, finishedstages, wrs, wrbs, wrcps, top10s, `groups`, lastseen, countryCode, continentCode FROM ck_playerrank WHERE steamid = '%s' AND style = '%i';";
 
@@ -178,14 +178,16 @@ char sql_stray_deleteWipePlayerOptions[]			= "DELETE FROM ck_playeroptions2 WHER
 
 // ck_playerrank
 char sql_stray_deleteWipePlayerRank[]				= "DELETE FROM ck_playerrank WHERE steamid = '%s';";
-char sql_stray_point_calc_playerRankData[]			= "SELECT name FROM ck_playerrank WHERE steamid = '%s' AND style = %i;";
+// char sql_selectPlayerName[]							= "SELECT name FROM ck_playerrank where steamid = '%s'";
+char sql_stray_point_calc_playerRankName[]			= "SELECT name FROM ck_playerrank WHERE steamid = '%s' AND style = %i;"; // duplicate of sql_selectPlayerName but with style
 char sql_stray_playerRankByName[]					= "SELECT steamid FROM ck_playerrank WHERE style = %i AND name LIKE '%c%s%c' LIMIT 1;";
 char sql_stray_cleanupPlayerRank[]					= "DELETE FROM ck_playerrank WHERE `points` <= 0";
 char sql_stray_specificCountryRank[]				= "SELECT COUNT(steamid), country FROM ck_playerrank WHERE country = '%s' AND style = %i;";
 char sql_stray_getPlayerPoints[]					= "SELECT points FROM ck_playerrank WHERE name = '%s' AND style = %i;";
 char sql_stray_getPlayerCountryRank[]				= "SELECT COUNT(steamid) + 1 FROM ck_playerrank WHERE country = '%s' AND style = %i AND points > %i;";
-char sql_stray_countryRankGetPlayerByName[]			= "SELECT * FROM ck_playerrank WHERE name = '%s';";
+// char sql_stray_countryRankGetPlayerByName[]			= "SELECT * FROM ck_playerrank WHERE name = '%s';";  // duplicate of sql_selectTopPlayers
 char sql_stray_countryRankPlayerCountryRankByName[] = "SELECT country FROM ck_playerrank WHERE name = '%s' AND style = %i;";
+// char sql_selectTopPlayers[]							= "SELECT name, points, finishedmapspro, steamid FROM ck_playerrank WHERE style = %i ORDER BY points DESC LIMIT 100";
 char sql_stray_countryTop[]							= "SELECT name, country, points, style FROM ck_playerrank WHERE country = '%s' AND style = %i ORDER BY points DESC LIMIT 100;";
 char sql_stray_countryTopAllCountries[]				= "SELECT DISTINCT(country) FROM ck_playerrank WHERE style = '%i' ORDER BY country;";
 char sql_stray_specificContinentRank[]				= "SELECT COUNT(steamid) FROM ck_playerrank WHERE continentCode = '%s' AND style = '%i';";
@@ -201,3 +203,6 @@ char sql_stray_viewPlayerInfo[]						= "SELECT steamid, steamid64, name, country
 char sql_stray_rankCommand[]						= "SELECT name, points FROM ck_playerrank WHERE style = 0 ORDER BY points DESC LIMIT %i, 1;";
 char sql_stray_rankCommandSelf[]					= "SELECT name, points FROM ck_playerrank WHERE steamid = '%s' AND style = 0;";
 char sql_stray_selectPlayerRankUnknown[]			= "SELECT steamid, name, points FROM ck_playerrank WHERE name LIKE '%c%s%c' ORDER BY points DESC LIMIT 0, 1;";
+
+
+

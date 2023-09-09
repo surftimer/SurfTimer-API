@@ -285,6 +285,11 @@ public void apiViewLatestRecordsCallback(HTTPResponse response, DataPack data)
 
 	if (response.Status != HTTPStatus_OK)
 	{
+		if (response.Status == HTTPStatus_NoContent)
+		{
+			LogQueryTime("[Surf API] Map not found (%s)", func);
+			return;
+		}
 		LogError("[Surf API] API Error (%s)", func);
 		return;
 	}
@@ -819,7 +824,7 @@ public void apiSelectPersonalBonusCallback(HTTPResponse response, DataPack data)
 		if (!g_bSettingsLoaded[client])
 			LoadClientSetting(client, g_iSettingToLoad[client]);
 
-		if (response.Status == HTTPStatus_NotFound)
+		if (response.Status == HTTPStatus_NoContent)
 		{
 			LogQueryTime("[Surf API] No entries found (%s)", func);
 			return;
@@ -902,7 +907,7 @@ public void apiSelectPlayerRankBonus(HTTPResponse response, DataPack data)
 
 	if (response.Status != HTTPStatus_OK)
 	{
-		if (response.Status == HTTPStatus_NotFound)
+		if (response.Status == HTTPStatus_NoContent)
 		{
 			LogQueryTime("[Surf API] No entries found (%s)", func);
 			return;
@@ -973,7 +978,7 @@ public void apiSelectFastestBonusCallback(HTTPResponse response, DataPack data)
 			db_viewBonusTotalCount();
 		}
 
-		if (response.Status == HTTPStatus_NotFound)
+		if (response.Status == HTTPStatus_NoContent)
 		{
 			LogQueryTime("[Surf API] No entries found (%s)", func);
 			return;
@@ -1084,7 +1089,7 @@ public void apiSelectAllBonusTimesInMapCallback(HTTPResponse response, DataPack 
 		if (!g_bServerDataLoaded)
 			db_CalculatePlayerCount(0);
 
-		if (response.Status == HTTPStatus_NotFound)
+		if (response.Status == HTTPStatus_NoContent)
 		{
 			LogQueryTime("[Surf API] No entries found (%s)", func);
 			return;
@@ -1149,7 +1154,7 @@ public void apiSelectBonusTopSurfersCallback(HTTPResponse response, DataPack dat
 
 	if (response.Status != HTTPStatus_OK)
 	{
-		if (response.Status == HTTPStatus_NotFound)
+		if (response.Status == HTTPStatus_NoContent)
 		{
 			LogQueryTime("[Surf API] No entries found (%s)", func);
 			return;

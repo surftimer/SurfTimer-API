@@ -623,7 +623,7 @@ public void RecalcPlayerRank(int client, char steamid[128]) // API'd up
 		if (GetConVarBool(g_hSurfApiEnabled))
 		{
 			char apiRoute[512];
-			FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/selectPlayerName?steamid32=%s", g_szApiHost, szsteamid);
+			FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/point_calc_playerRankName?steamid32=%s&style=%i", g_szApiHost, szsteamid, 0); // we need only 1 name, assuming everyone has 1 `Normal` style map completion - merged queries
 
 			DataPack dp = new DataPack();
 			dp.WriteString("RecalcPlayerRank");
@@ -641,7 +641,7 @@ public void RecalcPlayerRank(int client, char steamid[128]) // API'd up
 		else
 		{
 			char szQuery[255];
-			Format(szQuery, sizeof(szQuery), sql_selectPlayerName, szsteamid);
+			Format(szQuery, sizeof(szQuery), sql_stray_point_calc_playerRankName, szsteamid, 0); // we need only 1 name, assuming everyone has 1 `Normal` style map completion - merged queries
 			Handle pack = CreateDataPack();
 			WritePackCell(pack, i);
 			WritePackCell(pack, client);
@@ -685,7 +685,7 @@ public void CalculatePlayerRank(int client, int style)
 	WritePackCell(pack, client);
 	WritePackCell(pack, style);
 
-	Format(szQuery, sizeof(szQuery), sql_stray_point_calc_playerRankData, szSteamId, style);
+	Format(szQuery, sizeof(szQuery), sql_stray_point_calc_playerRankName, szSteamId, style);
 	SQL_TQuery(g_hDb, sql_CalcuatePlayerRankCallback, szQuery, pack, DBPrio_Low);
 }
 
@@ -6552,7 +6552,7 @@ public void db_CalculatePlayerCount(int style) // API'd up
 	else
 	{
 		char szQuery[255];
-		Format(szQuery, sizeof(szQuery), sql_CountRankedPlayers, style);
+		Format(szQuery, sizeof(szQuery), sql_CountRankedPlayers2, style);
 		DataPack pack = new DataPack();
 		pack.WriteCell(style);
 		pack.WriteFloat(GetGameTime());
@@ -12234,7 +12234,7 @@ public void db_SelectCustomPlayerCountryRank(int client, char szPlayerName[MAX_N
 
 	//CHECK IF PLAYER EXISTS
 	char szQuery[512];
-	Format(szQuery, sizeof szQuery, sql_stray_countryRankGetPlayerByName, szName);
+	Format(szQuery, sizeof szQuery, sql_stray_continentPlayerRankByName, szName);
 	SQL_TQuery(g_hDb, db_SelectCustomPlayerCountryRankCallback, szQuery, pack, DBPrio_Low);
 }
 
