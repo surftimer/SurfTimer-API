@@ -6206,13 +6206,6 @@ public void db_insertLastPositionCallback(Handle owner, Handle hndl, const char[
 	}
 }
 
-public void db_deletePlayerTmps()
-{
-	char szQuery[64];
-	Format(szQuery, sizeof(szQuery), "delete FROM ck_playertemp");
-	SQL_TQuery(g_hDb, SQL_CheckCallback, szQuery, _, DBPrio_Low);
-}
-
 public void db_ViewLatestRecords(int client) // API'd up
 {
 	if (GetConVarBool(g_hSurfApiEnabled))
