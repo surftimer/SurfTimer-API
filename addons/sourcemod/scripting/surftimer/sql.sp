@@ -12141,7 +12141,7 @@ public void db_GetPlayerPoints(int client, int CountryPlayerTotal, char szPlayer
 
 	//GET PLAYER POINTS
 	char szQuery[512];
-	Format(szQuery, sizeof szQuery, sql_stray_getPlayerPoints, szPlayerName, style);
+	Format(szQuery, sizeof(szQuery), sql_stray_getPlayerPointsByName, szPlayerName, style);
 	SQL_TQuery(g_hDb, db_GetPlayerPointsCallback, szQuery, pack, DBPrio_Low);
 }
 
