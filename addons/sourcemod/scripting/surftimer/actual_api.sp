@@ -2411,7 +2411,7 @@ public void apiCalculatePlayerPointsCountFinishedBonusCallback(HTTPResponse resp
 	int finishedbonuses = 0;
 	int wrbs			= 0;
 
-	if (response.Status == HTTPStatus_NotFound)
+	if (response.Status == HTTPStatus_NoContent)
 	{
 		LogQueryTime("[Surf API] No entries found (%s)", func);
 	}
@@ -2591,7 +2591,7 @@ public void apiCalculatePlayerPointsCountFinishedStagesCallback(HTTPResponse res
 	int finishedstages = 0;
 	int wrcps		   = 0;
 
-	if (response.Status == HTTPStatus_NotFound)
+	if (response.Status == HTTPStatus_NoContent)
 	{
 		LogQueryTime("[Surf API] No entries found (%s)", func);
 	}
@@ -2668,7 +2668,7 @@ public void apiCalculatePlayerPointsCountFinishedMapsCallback(HTTPResponse respo
 	char szMap[128], szMapName2[128];
 	int	 finishedMaps = 0, wrs;
 
-	if (response.Status == HTTPStatus_NotFound)
+	if (response.Status == HTTPStatus_NoContent)
 	{
 		LogQueryTime("[Surf API] No entries found (%s)", func);
 	}
@@ -2993,7 +2993,7 @@ public void apiCalculatePlayerPointsCountFinishedMapsCallback(HTTPResponse respo
 
 			delete jsonObject;
 		}
-		
+
 		delete jsonArray;
 	}
 
