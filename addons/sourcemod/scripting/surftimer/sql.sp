@@ -656,7 +656,7 @@ public void RecalcPlayerRank(int client, char steamid[128]) // API'd up
 //	- if client > MAXPLAYERS, his rank is being recalculated by an admin
 //	- else player has increased his rank = recalculate points
 //
-public void CalculatePlayerRank(int client, int style)
+public void CalculatePlayerRank(int client, int style) // API'd up
 {
 	char szQuery[255];
 	char szSteamId[32];
@@ -679,14 +679,35 @@ public void CalculatePlayerRank(int client, int style)
 	g_WRs[client][style][1] = 0; // WRBs
 	g_WRs[client][style][2] = 0; // WRCPs
 
-	getSteamIDFromClient(client, szSteamId, 32);
+	getSteamIDFromClient(client, szSteamId, sizeof(szSteamId));
 
-	Handle pack = CreateDataPack();
-	WritePackCell(pack, client);
-	WritePackCell(pack, style);
+	if (GetConVarBool(g_hSurfApiEnabled))
+	{
+		char apiRoute[512];
+		FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/point_calc_playerRankName?steamid32=%s&style=%i", g_szApiHost, szSteamId, style);
 
-	Format(szQuery, sizeof(szQuery), sql_stray_point_calc_playerRankName, szSteamId, style);
-	SQL_TQuery(g_hDb, sql_CalcuatePlayerRankCallback, szQuery, pack, DBPrio_Low);
+		DataPack dp = new DataPack();
+		dp.WriteString("CalculatePlayerRank-Init");
+		dp.WriteFloat(GetGameTime());
+		dp.WriteCell(client);
+		dp.WriteCell(style);
+		dp.Reset();
+
+		PrintToServer("API ROUTE: %s", apiRoute);
+
+		/* RipExt */
+		HTTPRequest request = new HTTPRequest(apiRoute);
+		request.Get(apiCalculatePlayerPointsCallback, dp);
+	}
+	else
+	{
+		Handle pack = CreateDataPack();
+		WritePackCell(pack, client);
+		WritePackCell(pack, style);
+
+		Format(szQuery, sizeof(szQuery), sql_stray_point_calc_playerRankName, szSteamId, style);
+		SQL_TQuery(g_hDb, sql_CalcuatePlayerRankCallback, szQuery, pack, DBPrio_Low);
+	}
 }
 
 // 2. See if player exists, insert new player into the database
@@ -716,12 +737,13 @@ public void sql_CalcuatePlayerRankCallback(Handle owner, Handle hndl, const char
 	{
 		if (IsValidClient(client))
 		{
-			if (GetClientTime(client) < (GetGameTime() - g_fMapStartTime))
-				db_UpdateLastSeen(client); // Update last seen on server
-		}
-
-		if (IsValidClient(client))
 			g_pr_Calculating[client] = true;
+
+			if (GetClientTime(client) < (GetGameTime() - g_fMapStartTime))
+			{
+				db_UpdateLastSeen(client); // Update last seen on server
+			}
+		}
 
 		// Next up, calculate bonus points:
 		char szQuery[512];
@@ -952,7 +974,7 @@ public void sql_CountFinishedBonusCallback(Handle owner, Handle hndl, const char
 	g_WRs[client][style][1] = wrbs;
 	// Next up: Points from stages
 	char szQuery[512];
-	Format(szQuery, 512, "SELECT mapname, stage, (select count(1)+1 from ck_wrcps b where a.mapname=b.mapname and a.runtimepro > b.runtimepro and a.style = b.style and a.stage = b.stage) AS `rank` FROM ck_wrcps a where steamid = '%s' AND style = %i;", szSteamId, style);
+	Format(szQuery, sizeof(szQuery), sql_stray_point_calc_finishedStages, szSteamId, style);
 	SQL_TQuery(g_hDb, sql_CountFinishedStagesCallback, szQuery, pack, DBPrio_Low);
 }
 
@@ -1015,7 +1037,7 @@ public void sql_CountFinishedStagesCallback(Handle owner, Handle hndl, const cha
 
 	// Next up: Points from maps
 	char szQuery[512];
-	Format(szQuery, 512, "SELECT mapname, (select count(1)+1 from ck_playertimes b where a.mapname=b.mapname and a.runtimepro > b.runtimepro AND b.style = %i) AS `rank`, (SELECT count(1) FROM ck_playertimes b WHERE a.mapname = b.mapname AND b.style = %i) as total, (SELECT tier FROM `ck_maptier` b WHERE a.mapname = b.mapname) as tier FROM ck_playertimes a where steamid = '%s' AND style = %i;", style, style, szSteamId, style);
+	Format(szQuery, sizeof(szQuery), sql_stray_point_calc_finishedMaps, style, style, szSteamId, style);
 	SQL_TQuery(g_hDb, sql_CountFinishedMapsCallback, szQuery, pack, DBPrio_Low);
 }
 
@@ -1399,7 +1421,7 @@ public void db_updatePoints(int client, int style) // API'd up x2
 			jsonObject = JSONObject.FromString(body);
 					
 			DataPack dp = new DataPack();
-			dp.WriteString("api_updatePlayerRankPoints");
+			dp.WriteString("api_updatePlayerRankPoints-AdminMenu");
 			dp.WriteFloat(GetGameTime());
 			dp.WriteCell(client);
 			dp.WriteCell(style);
@@ -1571,7 +1593,7 @@ public void sql_updatePlayerRankPointsCallback(Handle owner, Handle hndl, const 
 }
 
 // Called when player joins server
-public void db_viewPlayerPoints(int client)
+public void db_viewPlayerPoints(int client) // API'd up
 {
 	if (!IsValidClient(client))
 		return;
@@ -1879,31 +1901,31 @@ public void db_viewPlayerProfile(int client, int style, char szSteamId[32], bool
 	}
 	else
 	{
-		// if (GetConVarBool(g_hSurfApiEnabled)) // This is wrong, no steamid by name endpoint in API yet
-		// {
-		// 	char apiRoute[512];
+		if (GetConVarBool(g_hSurfApiEnabled)) // This is wrong, no steamid by name endpoint in API yet
+		{
+			char apiRoute[512];
 				
-		// 	DataPack dp = new DataPack();
-		// 	dp.WriteString("db_viewPlayerProfile-unknownPlayer");
-		// 	dp.WriteFloat(GetGameTime());
-		// 	dp.WriteCell(client);
-		// 	dp.WriteCell(style);
-		// 	dp.WriteString(szSteamId);
-		// 	dp.WriteString(szName);
-		// 	dp.Reset();
+			DataPack dp = new DataPack();
+			dp.WriteString("db_viewPlayerProfile-unknownPlayer");
+			dp.WriteFloat(GetGameTime());
+			dp.WriteCell(client);
+			dp.WriteCell(style);
+			dp.WriteString(szSteamId);
+			dp.WriteString(szName);
+			dp.Reset();
 
-		// 	FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/selectRankedPlayersRank?style=%i&steamid32=%s", g_szApiHost, style, szSteamId);
-		// 	PrintToServer("API LINK: %s", apiRoute);
-		// 	/* RipExt - GET */
-		// 	HTTPRequest request = new HTTPRequest(apiRoute);
-		// 	request.Get(apiSelectRankedPlayersRankCallback, dp);
-		// }
-		// else
-		// {
+			FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/playerRankByName?style=%i&name=%s", g_szApiHost, style, szName);
+			PrintToServer("API LINK: %s", apiRoute);
+			/* RipExt - GET */
+			HTTPRequest request = new HTTPRequest(apiRoute);
+			request.Get(apiSelectRankedPlayersRankCallback, dp);
+		}
+		else
+		{
 			// "SELECT steamid, steamid64, name, country, points, wrpoints, wrbpoints, top10points, groupspoints, mappoints, bonuspoints, finishedmapspro, finishedbonuses, finishedstages, wrs, wrbs, wrcps, top10s, groups, lastseen FROM ck_playerrank WHERE name LIKE '%c%s%c' AND style = '%i';"; sql_selectUnknownProfile
 			Format(szQuery, sizeof(szQuery), sql_stray_playerRankByName, style, PERCENT, szName, PERCENT);
 			SQL_TQuery(g_hDb, sql_selectUnknownPlayerCallback, szQuery, pack, DBPrio_Low);
-		// }
+		}
 	}
 }
 

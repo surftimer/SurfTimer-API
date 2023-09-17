@@ -83,29 +83,39 @@ public void apiPostCallback(HTTPResponse response, DataPack data)
 /* Deals with all(?) PUT callbacks */
 public void apiPutCallback(HTTPResponse response, DataPack data)
 {
-	char func[128];
+	char func[256];
 	data.ReadString(func, sizeof(func));
 	float fTime = data.ReadFloat();
 	PrintToServer("[Surf API] Status (%s): %i", func, response.Status);
 
-	if (response.Status != HTTPStatus_OK)
+	if (response.Status == HTTPStatus_NotModified)
 	{
-		delete data;
-		if (response.Status == HTTPStatus_NotModified)
+		PrintToServer("========== NOT MODIFIED (%s)", func);
+		if (!StrEqual(func, "api_updatePlayerRankPoints-AdminMenu", false))	   // shouldn't `return` if we recalculating points from menu
 		{
 			LogQueryTime("[Surf API] Could not UPDATE item. Status %i (%s)", response.Status, func);
+			delete data;
 			return;
 		}
+	}
+	else if (response.Status != HTTPStatus_OK)
+	{
 		LogError("[Surf API] PUT callback error. Status %i (%s)", response.Status, func);
+		delete data;
 		return;
 	}
 
-	// Assign the response to a JSONObject
-	JSONObject jsonObject = view_as<JSONObject>(response.Data);
+	if (response.Status == HTTPStatus_OK)
+	{
+		// Assign the response to a JSONObject
+		JSONObject jsonObject = view_as<JSONObject>(response.Data);
 
-	float	   xtime	  = jsonObject.GetFloat("xtime");
-	int		   updated	  = jsonObject.GetInt("updated");
-	PrintToServer("[Surf API - %s] Updated %i in %.4f", func, updated, xtime);
+		float	   xtime	  = jsonObject.GetFloat("xtime");
+		int		   updated	  = jsonObject.GetInt("updated");
+		PrintToServer("[Surf API - %s] Updated %i in %.4f", func, updated, xtime);
+
+		delete jsonObject;
+	}
 
 	if (StrEqual(func, "db_insertMapperName") || StrEqual(func, "db_insertMapTier"))
 	{
@@ -130,7 +140,7 @@ public void apiPutCallback(HTTPResponse response, DataPack data)
 		// Calculating starts here:
 		CalculatePlayerRank(client, style);
 	}
-	else if (StrEqual(func, "api_updatePlayerRankPoints") || StrEqual(func, "api_updatePlayerRankPoints2"))	   // Recalculates points
+	else if (StrEqual(func, "api_updatePlayerRankPoints-AdminMenu") || StrEqual(func, "api_updatePlayerRankPoints2"))	 // Recalculates points
 	{
 		int client = data.ReadCell();
 		int style  = data.ReadCell();
@@ -228,10 +238,8 @@ public void apiPutCallback(HTTPResponse response, DataPack data)
 	else if (StrEqual(func, "db_updateStat"))
 	{
 	}
-	LogQueryTime("====== [Surf API] : Finished %s in: %.4f", func, GetGameTime() - fTime);
 
-	// Delete objects so we avoid memory leaks
-	delete jsonObject;
+	LogQueryTime("====== [Surf API] : Finished %s in: %.4f", func, GetGameTime() - fTime);
 	delete data;
 	return;
 }
@@ -2270,4 +2278,770 @@ public void apiSelectPlayerPointsCallback(HTTPResponse response, DataPack data)
 	LogQueryTime("====== [Surf API] : Finished %s in: %f", func, GetGameTime() - fTime);
 
 	return;
+}
+
+/* Player Points Calculation */
+public void apiCalculatePlayerPointsCallback(HTTPResponse response, DataPack data)
+{
+	char func[128];
+	data.ReadString(func, sizeof(func));
+	float time	 = data.ReadFloat();
+	int	  client = data.ReadCell();
+	int	  style	 = data.ReadCell();
+	delete data;
+	char szSteamId[32], szSteamId64[64];
+
+	// if (!IsValidClient(client))
+	// 	return;
+
+	getSteamIDFromClient(client, szSteamId, sizeof(szSteamId));
+
+	if (IsValidClient(client))
+	{
+		GetClientAuthId(client, AuthId_SteamID64, szSteamId64, MAX_NAME_LENGTH, true);
+	}
+
+	PrintToServer("client: %i | SteamID32: %s | SteamID64: %s", client, szSteamId, szSteamId64);
+
+	if (response.Status == HTTPStatus_NotFound)
+	{
+		LogQueryTime("[Surf API] No entries found (%s)", func);
+		// Players first time on server
+		if (client <= MaxClients)
+		{
+			g_pr_Calculating[client] = false;
+			g_pr_AllPlayers[style]++;
+
+			// Insert player to database
+			char szUName[MAX_NAME_LENGTH];
+			char szName[MAX_NAME_LENGTH * 2 + 1];
+
+			GetClientName(client, szUName, MAX_NAME_LENGTH);
+			SQL_EscapeString(g_hDb, szUName, szName, MAX_NAME_LENGTH * 2 + 1);
+
+			// "INSERT INTO ck_playerrank (steamid, name, country) VALUES('%s', '%s', '%s');";
+			// No need to continue calculating, as the doesn't have any records.
+			char apiRoute[512], body[1024];
+
+			// Prepare API call body
+			FormatEx(body, sizeof(body), api_insertPlayerRank, szSteamId, szSteamId64, szName, g_szCountry[client], g_szCountryCode[client], g_szContinentCode[client], GetTime(), style);
+			JSONObject jsonObject;
+			jsonObject	= JSONObject.FromString(body);
+
+			DataPack dp = new DataPack();
+			dp.WriteString("CalculatePlayerRank-2nd-NewPlayer");
+			dp.WriteFloat(GetGameTime());
+			dp.WriteCell(client);
+			dp.Reset();
+
+			FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/insertPlayerRank", g_szApiHost);
+			PrintToServer("API LINK: %s", apiRoute);
+			PrintToServer("API BODY: %s", body);
+
+			/* RipExt - POST */
+			HTTPRequest request = new HTTPRequest(apiRoute);
+			request.Post(jsonObject, apiPostCallback, dp);
+
+			delete jsonObject;
+
+			g_pr_finishedmaps[client][style]	  = 0;
+			g_pr_finishedmaps_perc[client][style] = 0.0;
+			g_pr_finishedbonuses[client][style]	  = 0;
+			g_pr_finishedstages[client][style]	  = 0;
+			g_GroupMaps[client][style]			  = 0;	  // Group Maps
+			g_Top10Maps[client][style]			  = 0;	  // Top 10 Maps
+
+			// play time
+			g_iPlayTimeAlive[client]			  = 0;
+			g_iPlayTimeSpec[client]				  = 0;
+
+			CalculatePlayerRank(client, style);
+
+			return;
+		}
+	}
+	else if (response.Status != HTTPStatus_OK)
+	{
+		LogError("[Surf API] API Error %i (%s)", response.Status, func);
+		return;
+	}
+
+	JSONObject jsonObject = view_as<JSONObject>(response.Data);
+	// char	   out[1024];
+	// jsonObject.ToString(out, sizeof(out));
+	// PrintToServer("[Surf API] Output (%s): %s", func, out);
+
+	if (IsValidClient(client))
+	{
+		g_pr_Calculating[client] = true;
+		if (GetClientTime(client) < (GetGameTime() - g_fMapStartTime))
+		{
+			db_UpdateLastSeen(client);	  // Update last seen on server
+		}
+	}
+
+	char apiRoute[512];
+	FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/point_calc_countFinishedBonus?steamid32=%s&style=%i", g_szApiHost, szSteamId, style);
+
+	DataPack dp = new DataPack();
+	dp.WriteString("CalculatePlayerRank-2nd-Bonuses");
+	dp.WriteFloat(GetGameTime());
+	dp.WriteCell(client);
+	dp.WriteCell(style);
+	dp.Reset();
+
+	PrintToServer("API ROUTE: %s", apiRoute);
+
+	/* RipExt */
+	HTTPRequest request = new HTTPRequest(apiRoute);
+	request.Get(apiCalculatePlayerPointsCountFinishedBonusCallback, dp);
+
+	LogQueryTime("====== [Surf API] : Finished %s in: %f", func, GetGameTime() - time);
+	delete jsonObject;
+}
+
+public void apiCalculatePlayerPointsCountFinishedBonusCallback(HTTPResponse response, DataPack data)
+{
+	char func[128];
+	data.ReadString(func, sizeof(func));
+	float time	 = data.ReadFloat();
+	int	  client = data.ReadCell();
+	int	  style	 = data.ReadCell();
+	delete data;
+
+	// if (!IsValidClient(client))
+	// 	return;
+
+	char szMap[128], szSteamId[32], szMapName2[128];
+
+	getSteamIDFromClient(client, szSteamId, 32);
+	int finishedbonuses = 0;
+	int wrbs			= 0;
+
+	if (response.Status == HTTPStatus_NotFound)
+	{
+		LogQueryTime("[Surf API] No entries found (%s)", func);
+	}
+	else if (response.Status != HTTPStatus_OK)
+	{
+		LogError("[Surf API] API Error %i (%s)", response.Status, func);
+		return;
+	}
+
+	// Indicate that the response contains a JSON array
+	JSONArray jsonArray = view_as<JSONArray>(response.Data);
+	if (jsonArray.Length <= 0)
+	{
+		// Array is empty stop here
+		LogError("[Surf API] API Returned empty array (%s)", func);
+
+		delete jsonArray;
+		return;
+	}
+
+	for (int i = 0; i < jsonArray.Length; i++)
+	{
+		finishedbonuses++;
+		JSONObject jsonObject = view_as<JSONObject>(jsonArray.Get(i));
+		jsonObject.GetString("mapname", szMap, sizeof(szMap));
+		int rank = jsonObject.GetInt("rank");
+
+		for (int k = 0; k < GetArraySize(g_MapList); k++)	 // Check that the map is in the mapcycle
+		{
+			GetArrayString(g_MapList, k, szMapName2, sizeof(szMapName2));
+			if (StrEqual(szMapName2, szMap, false))
+			{
+				switch (rank)
+				{
+					case 1:
+					{
+						g_pr_points[client][style] += 250;
+						g_Points[client][style][4] += 250;
+						wrbs++;
+					}
+					case 2:
+					{
+						g_pr_points[client][style] += 235;
+						g_Points[client][style][1] += 235;
+					}
+					case 3:
+					{
+						g_pr_points[client][style] += 220;
+						g_Points[client][style][1] += 220;
+					}
+					case 4:
+					{
+						g_pr_points[client][style] += 205;
+						g_Points[client][style][1] += 205;
+					}
+					case 5:
+					{
+						g_pr_points[client][style] += 190;
+						g_Points[client][style][1] += 190;
+					}
+					case 6:
+					{
+						g_pr_points[client][style] += 175;
+						g_Points[client][style][1] += 175;
+					}
+					case 7:
+					{
+						g_pr_points[client][style] += 160;
+						g_Points[client][style][1] += 160;
+					}
+					case 8:
+					{
+						g_pr_points[client][style] += 145;
+						g_Points[client][style][1] += 145;
+					}
+					case 9:
+					{
+						g_pr_points[client][style] += 130;
+						g_Points[client][style][1] += 130;
+					}
+					case 10:
+					{
+						g_pr_points[client][style] += 100;
+						g_Points[client][style][1] += 100;
+					}
+					case 11:
+					{
+						g_pr_points[client][style] += 95;
+						g_Points[client][style][1] += 95;
+					}
+					case 12:
+					{
+						g_pr_points[client][style] += 90;
+						g_Points[client][style][1] += 90;
+					}
+					case 13:
+					{
+						g_pr_points[client][style] += 80;
+						g_Points[client][style][1] += 80;
+					}
+					case 14:
+					{
+						g_pr_points[client][style] += 70;
+						g_Points[client][style][1] += 70;
+					}
+					case 15:
+					{
+						g_pr_points[client][style] += 60;
+						g_Points[client][style][1] += 60;
+					}
+					case 16:
+					{
+						g_pr_points[client][style] += 50;
+						g_Points[client][style][1] += 50;
+					}
+					case 17:
+					{
+						g_pr_points[client][style] += 40;
+						g_Points[client][style][1] += 40;
+					}
+					case 18:
+					{
+						g_pr_points[client][style] += 30;
+						g_Points[client][style][1] += 30;
+					}
+					case 19:
+					{
+						g_pr_points[client][style] += 20;
+						g_Points[client][style][1] += 20;
+					}
+					case 20:
+					{
+						g_pr_points[client][style] += 10;
+						g_Points[client][style][1] += 10;
+					}
+					default:
+					{
+						g_pr_points[client][style] += 5;
+						g_Points[client][style][1] += 5;
+					}
+				}
+				break;
+			}
+		}
+		delete jsonObject;
+	}
+	delete jsonArray;
+
+	g_pr_finishedbonuses[client][style] = finishedbonuses;
+	g_WRs[client][style][1]				= wrbs;
+
+	char apiRoute[512];
+	FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/point_calc_finishedStages?steamid32=%s&style=%i", g_szApiHost, szSteamId, style);
+
+	DataPack dp = new DataPack();
+	dp.WriteString("CalculatePlayerRank-3rd-Stages");
+	dp.WriteFloat(GetGameTime());
+	dp.WriteCell(client);
+	dp.WriteCell(style);
+	dp.Reset();
+
+	PrintToServer("API ROUTE: %s", apiRoute);
+
+	/* RipExt */
+	HTTPRequest request = new HTTPRequest(apiRoute);
+	request.Get(apiCalculatePlayerPointsCountFinishedStagesCallback, dp);
+
+	LogQueryTime("====== [Surf API] : Finished %s in: %f", func, GetGameTime() - time);
+}
+
+public void apiCalculatePlayerPointsCountFinishedStagesCallback(HTTPResponse response, DataPack data)
+{
+	char func[128];
+	data.ReadString(func, sizeof(func));
+	float time	 = data.ReadFloat();
+	int	  client = data.ReadCell();
+	int	  style	 = data.ReadCell();
+	delete data;
+
+	char szMap[128], szSteamId[32], szMapName2[128];
+
+	getSteamIDFromClient(client, szSteamId, 32);
+	int finishedstages = 0;
+	int wrcps		   = 0;
+
+	if (response.Status == HTTPStatus_NotFound)
+	{
+		LogQueryTime("[Surf API] No entries found (%s)", func);
+	}
+	else if (response.Status != HTTPStatus_OK)
+	{
+		LogError("[Surf API] API Error %i (%s)", response.Status, func);
+		return;
+	}
+
+	// Indicate that the response contains a JSON array
+	JSONArray jsonArray = view_as<JSONArray>(response.Data);
+	if (jsonArray.Length <= 0)
+	{
+		// Array is empty stop here
+		LogError("[Surf API] API Returned empty array (%s)", func);
+
+		delete jsonArray;
+		return;
+	}
+
+	for (int i = 0; i < jsonArray.Length; i++)
+	{
+		finishedstages++;
+		JSONObject jsonObject = view_as<JSONObject>(jsonArray.Get(i));
+		jsonObject.GetString("mapname", szMap, sizeof(szMap));
+		int rank = jsonObject.GetInt("rank");
+
+		for (int k = 0; k < GetArraySize(g_MapList); k++)	 // Check that the map is in the mapcycle
+		{
+			GetArrayString(g_MapList, k, szMapName2, sizeof(szMapName2));
+			if (StrEqual(szMapName2, szMap, false))
+			{
+				if (rank == 1)
+				{
+					wrcps++;
+					int wrcpPoints = GetConVarInt(g_hWrcpPoints);
+					if (wrcpPoints > 0)
+					{
+						g_pr_points[client][style] += wrcpPoints;
+						g_Points[client][style][6] += wrcpPoints;
+					}
+				}
+				break;
+			}
+		}
+		delete jsonObject;
+	}
+
+	delete jsonArray;
+	LogQueryTime("====== [Surf API] : Finished %s in: %f", func, GetGameTime() - time);
+	g_pr_finishedstages[client][style] = finishedstages;
+	g_WRs[client][style][2]			   = wrcps;
+
+	char apiRoute[512];
+	FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/point_calc_finishedMaps?steamid32=%s&style=%i", g_szApiHost, szSteamId, style);
+
+	DataPack dp = new DataPack();
+	dp.WriteString("CalculatePlayerRank-4th-Maps");
+	dp.WriteFloat(GetGameTime());
+	dp.WriteCell(client);
+	dp.WriteCell(style);
+	dp.Reset();
+
+	PrintToServer("API ROUTE: %s", apiRoute);
+
+	/* RipExt */
+	HTTPRequest request = new HTTPRequest(apiRoute);
+	request.Get(apiCalculatePlayerPointsCountFinishedMapsCallback, dp);
+}
+
+public void apiCalculatePlayerPointsCountFinishedMapsCallback(HTTPResponse response, DataPack data)
+{
+	char func[128];
+	data.ReadString(func, sizeof(func));
+	float time	 = data.ReadFloat();
+	int	  client = data.ReadCell();
+	int	  style	 = data.ReadCell();
+	delete data;
+
+	char szMap[128], szMapName2[128];
+	int	 finishedMaps = 0, wrs;
+
+	if (response.Status == HTTPStatus_NotFound)
+	{
+		LogQueryTime("[Surf API] No entries found (%s)", func);
+	}
+	else if (response.Status != HTTPStatus_OK)
+	{
+		LogError("[Surf API] API Error %i (%s)", response.Status, func);
+		return;
+	}
+
+	// Indicate that the response contains a JSON array
+	JSONArray jsonArray = view_as<JSONArray>(response.Data);
+	if (jsonArray.Length <= 0)
+	{
+		// Array is empty stop here
+		LogError("[Surf API] API Returned empty array (%s)", func);
+
+		delete jsonArray;
+		return;
+	}
+
+	for (int i = 0; i < jsonArray.Length; i++)
+	{
+		JSONObject jsonObject = view_as<JSONObject>(jsonArray.Get(i));
+		jsonObject.GetString("mapname", szMap, sizeof(szMap));
+		int totalplayers = jsonObject.GetInt("total");
+		int rank		 = jsonObject.GetInt("rank");
+		int tier		 = jsonObject.GetInt("tier");
+
+		for (int k = 0; k < GetArraySize(g_MapList); k++)	 // Check that the map is in the mapcycle
+		{
+			GetArrayString(g_MapList, k, szMapName2, sizeof(szMapName2));
+			if (StrEqual(szMapName2, szMap, false))
+			{
+				finishedMaps++;
+				float wrpoints;
+				int	  iwrpoints;
+				float points;
+				float g1points;
+				float g2points;
+				float g3points;
+				float g4points;
+				float g5points;
+
+				// Calculate Group Ranks
+				// Group 1
+				float fG1top;
+				int	  g1top;
+				int	  g1bot = 11;
+				fG1top		= (float(totalplayers) * g_Group1Pc);
+				fG1top += 11.0;	   // Rank 11 is always End of Group 1
+				g1top			 = RoundToCeil(fG1top);
+
+				int g1difference = (g1top - g1bot);
+				if (g1difference < 4)
+					g1top = (g1bot + 4);
+
+				// Group 2
+				float fG2top;
+				int	  g2top;
+				int	  g2bot;
+				g2bot  = g1top + 1;
+				fG2top = (float(totalplayers) * g_Group2Pc);
+				fG2top += 11.0;
+				g2top			 = RoundToCeil(fG2top);
+
+				int g2difference = (g2top - g2bot);
+				if (g2difference < 4)
+					g2top = (g2bot + 4);
+
+				// Group 3
+				float fG3top;
+				int	  g3top;
+				int	  g3bot;
+				g3bot  = g2top + 1;
+				fG3top = (float(totalplayers) * g_Group3Pc);
+				fG3top += 11.0;
+				g3top			 = RoundToCeil(fG3top);
+
+				int g3difference = (g3top - g3bot);
+				if (g3difference < 4)
+					g3top = (g3bot + 4);
+
+				// Group 4
+				float fG4top;
+				int	  g4top;
+				int	  g4bot;
+				g4bot  = g3top + 1;
+				fG4top = (float(totalplayers) * g_Group4Pc);
+				fG4top += 11.0;
+				g4top			 = RoundToCeil(fG4top);
+
+				int g4difference = (g4top - g4bot);
+				if (g4difference < 4)
+					g4top = (g4bot + 4);
+
+				// Group 5
+				float fG5top;
+				int	  g5top;
+				int	  g5bot;
+				g5bot  = g4top + 1;
+				fG5top = (float(totalplayers) * g_Group5Pc);
+				fG5top += 11.0;
+				g5top			 = RoundToCeil(fG5top);
+
+				int g5difference = (g5top - g5bot);
+				if (g5difference < 4)
+					g5top = (g5bot + 4);
+
+				if (tier == 1)
+				{
+					wrpoints = ((float(totalplayers) * 1.75) / 6);
+					wrpoints += 58.5;
+					if (wrpoints < 250.0)
+						wrpoints = 250.0;
+				}
+				else if (tier == 2)
+				{
+					wrpoints = ((float(totalplayers) * 2.8) / 5);
+					wrpoints += 82.15;
+					if (wrpoints < 500.0)
+						wrpoints = 500.0;
+				}
+				else if (tier == 3)
+				{
+					wrpoints = ((float(totalplayers) * 3.5) / 4);
+					if (wrpoints < 750.0)
+						wrpoints = 750.0;
+					else
+						wrpoints += 117;
+				}
+				else if (tier == 4)
+				{
+					wrpoints = ((float(totalplayers) * 5.74) / 4);
+					if (wrpoints < 1000.0)
+						wrpoints = 1000.0;
+					else
+						wrpoints += 164.25;
+				}
+				else if (tier == 5)
+				{
+					wrpoints = ((float(totalplayers) * 7) / 4);
+					if (wrpoints < 1250.0)
+						wrpoints = 1250.0;
+					else
+						wrpoints += 234;
+				}
+				else if (tier == 6)
+				{
+					wrpoints = ((float(totalplayers) * 14) / 4);
+					if (wrpoints < 1500.0)
+						wrpoints = 1500.0;
+					else
+						wrpoints += 328;
+				}
+				else if (tier == 7)
+				{
+					wrpoints = ((float(totalplayers) * 21) / 4);
+					if (wrpoints < 1750.0)
+						wrpoints = 1750.0;
+					else
+						wrpoints += 420;
+				}
+				else if (tier == 8)
+				{
+					wrpoints = ((float(totalplayers) * 30) / 4);
+					if (wrpoints < 2000.0)
+						wrpoints = 2000.0;
+					else
+						wrpoints += 560;
+				}
+				else	// no tier set
+					wrpoints = 25.0;
+
+				// Round WR points up
+				iwrpoints = RoundToCeil(wrpoints);
+
+				// Top 10 Points
+				if (rank < 11)
+				{
+					g_Top10Maps[client][style]++;
+					if (rank == 1)
+					{
+						g_pr_points[client][style] += iwrpoints;
+						g_Points[client][style][3] += iwrpoints;
+						wrs++;
+					}
+					else if (rank == 2)
+					{
+						points = (0.80 * iwrpoints);
+						g_pr_points[client][style] += RoundToCeil(points);
+						g_Points[client][style][5] += RoundToCeil(points);
+					}
+					else if (rank == 3)
+					{
+						points = (0.75 * iwrpoints);
+						g_pr_points[client][style] += RoundToCeil(points);
+						g_Points[client][style][5] += RoundToCeil(points);
+					}
+					else if (rank == 4)
+					{
+						points = (0.70 * iwrpoints);
+						g_pr_points[client][style] += RoundToCeil(points);
+						g_Points[client][style][5] += RoundToCeil(points);
+					}
+					else if (rank == 5)
+					{
+						points = (0.65 * iwrpoints);
+						g_pr_points[client][style] += RoundToCeil(points);
+						g_Points[client][style][5] += RoundToCeil(points);
+					}
+					else if (rank == 6)
+					{
+						points = (0.60 * iwrpoints);
+						g_pr_points[client][style] += RoundToCeil(points);
+						g_Points[client][style][5] += RoundToCeil(points);
+					}
+					else if (rank == 7)
+					{
+						points = (0.55 * iwrpoints);
+						g_pr_points[client][style] += RoundToCeil(points);
+						g_Points[client][style][5] += RoundToCeil(points);
+					}
+					else if (rank == 8)
+					{
+						points = (0.50 * iwrpoints);
+						g_pr_points[client][style] += RoundToCeil(points);
+						g_Points[client][style][5] += RoundToCeil(points);
+					}
+					else if (rank == 9)
+					{
+						points = (0.45 * iwrpoints);
+						g_pr_points[client][style] += RoundToCeil(points);
+						g_Points[client][style][5] += RoundToCeil(points);
+					}
+					else if (rank == 10)
+					{
+						points = (0.40 * iwrpoints);
+						g_pr_points[client][style] += RoundToCeil(points);
+						g_Points[client][style][5] += RoundToCeil(points);
+					}
+				}
+				else if (rank > 10 && rank <= g5top)
+				{
+					// Group 1-5 Points
+					g_GroupMaps[client][style] += 1;
+					// Calculate Group Points
+					g1points = (iwrpoints * 0.25);
+					g2points = (g1points / 1.5);
+					g3points = (g2points / 1.5);
+					g4points = (g3points / 1.5);
+					g5points = (g4points / 1.5);
+
+					if (rank >= g1bot && rank <= g1top)	   // Group 1
+					{
+						g_pr_points[client][style] += RoundFloat(g1points);
+						g_Points[client][style][2] += RoundFloat(g1points);
+					}
+					else if (rank >= g2bot && rank <= g2top)	// Group 2
+					{
+						g_pr_points[client][style] += RoundFloat(g2points);
+						g_Points[client][style][2] += RoundFloat(g2points);
+					}
+					else if (rank >= g3bot && rank <= g3top)	// Group 3
+					{
+						g_pr_points[client][style] += RoundFloat(g3points);
+						g_Points[client][style][2] += RoundFloat(g3points);
+					}
+					else if (rank >= g4bot && rank <= g4top)	// Group 4
+					{
+						g_pr_points[client][style] += RoundFloat(g4points);
+						g_Points[client][style][2] += RoundFloat(g4points);
+					}
+					else if (rank >= g5bot && rank <= g5top)	// Group 5
+					{
+						g_pr_points[client][style] += RoundFloat(g5points);
+						g_Points[client][style][2] += RoundFloat(g5points);
+					}
+				}
+
+				// Map Completiton Points
+				if (tier == 1)
+				{
+					g_pr_points[client][style] += 25;
+					g_Points[client][style][0] += 25;
+				}
+				else if (tier == 2)
+				{
+					g_pr_points[client][style] += 50;
+					g_Points[client][style][0] += 50;
+				}
+				else if (tier == 3)
+				{
+					g_pr_points[client][style] += 100;
+					g_Points[client][style][0] += 100;
+				}
+				else if (tier == 4)
+				{
+					g_pr_points[client][style] += 200;
+					g_Points[client][style][0] += 200;
+				}
+				else if (tier == 5)
+				{
+					g_pr_points[client][style] += 400;
+					g_Points[client][style][0] += 400;
+				}
+				else if (tier == 6)
+				{
+					g_pr_points[client][style] += 600;
+					g_Points[client][style][0] += 600;
+				}
+				else if (tier == 7)
+				{
+					g_pr_points[client][style] += 800;
+					g_Points[client][style][0] += 800;
+				}
+				else if (tier == 8)
+				{
+					g_pr_points[client][style] += 1000;
+					g_Points[client][style][0] += 1000;
+				}
+				else	// no tier
+				{
+					g_pr_points[client][style] += 13;
+					g_Points[client][style][0] += 13;
+				}
+				break;
+			}
+		}
+
+		delete jsonObject;
+	}
+	delete jsonArray;
+
+	// Finished maps amount is stored in memory
+	g_pr_finishedmaps[client][style]	  = finishedMaps;
+	// Percentage of maps finished
+	g_pr_finishedmaps_perc[client][style] = (float(finishedMaps) / float(g_pr_MapCount[0])) * 100.0;
+
+	// WRs
+	g_WRs[client][style][0]				  = wrs;
+
+	int	  totalperc						  = g_pr_finishedstages[client][style] + g_pr_finishedbonuses[client][style] + g_pr_finishedmaps[client][style];
+	int	  totalcomp						  = g_pr_StageCount + g_pr_BonusCount + g_pr_MapCount[0];
+	float ftotalperc;
+
+	ftotalperc = (float(totalperc) / (float(totalcomp))) * 100.0;
+
+	if (IsValidClient(client) && !IsFakeClient(client))
+	{
+		CS_SetMVPCount(client, (RoundFloat(ftotalperc)));
+	}
+
+	// Done checking, update points
+	db_updatePoints(client, style);
+
+	LogQueryTime("====== [Surf API] : Finished %s in: %f", func, GetGameTime() - time);
 }
