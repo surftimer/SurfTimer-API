@@ -90,7 +90,6 @@ public void apiPutCallback(HTTPResponse response, DataPack data)
 
 	if (response.Status == HTTPStatus_NotModified)
 	{
-		PrintToServer("========== NOT MODIFIED (%s)", func);
 		if (!StrEqual(func, "api_updatePlayerRankPoints-AdminMenu", false))	   // shouldn't `return` if we recalculating points from menu
 		{
 			LogQueryTime("[Surf API] Could not UPDATE item. Status %i (%s)", response.Status, func);
@@ -2291,9 +2290,6 @@ public void apiCalculatePlayerPointsCallback(HTTPResponse response, DataPack dat
 	delete data;
 	char szSteamId[32], szSteamId64[64];
 
-	// if (!IsValidClient(client))
-	// 	return;
-
 	getSteamIDFromClient(client, szSteamId, sizeof(szSteamId));
 
 	if (IsValidClient(client))
@@ -2301,7 +2297,7 @@ public void apiCalculatePlayerPointsCallback(HTTPResponse response, DataPack dat
 		GetClientAuthId(client, AuthId_SteamID64, szSteamId64, MAX_NAME_LENGTH, true);
 	}
 
-	PrintToServer("client: %i | SteamID32: %s | SteamID64: %s", client, szSteamId, szSteamId64);
+	// PrintToServer("client: %i | SteamID32: %s | SteamID64: %s", client, szSteamId, szSteamId64);
 
 	if (response.Status == HTTPStatus_NotFound)
 	{
@@ -2408,9 +2404,6 @@ public void apiCalculatePlayerPointsCountFinishedBonusCallback(HTTPResponse resp
 	int	  client = data.ReadCell();
 	int	  style	 = data.ReadCell();
 	delete data;
-
-	// if (!IsValidClient(client))
-	// 	return;
 
 	char szMap[128], szSteamId[32], szMapName2[128];
 
