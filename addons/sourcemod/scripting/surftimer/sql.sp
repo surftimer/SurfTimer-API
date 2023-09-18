@@ -623,7 +623,8 @@ public void RecalcPlayerRank(int client, char steamid[128]) // API'd up
 		if (GetConVarBool(g_hSurfApiEnabled))
 		{
 			char apiRoute[512];
-			FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/point_calc_playerRankName?steamid32=%s&style=%i", g_szApiHost, szsteamid, 0); // we need only 1 name, assuming everyone has 1 `Normal` style map completion - merged queries
+			// FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/point_calc_playerRankName?steamid32=%s&style=%i", g_szApiHost, szsteamid, 0); // we need only 1 name, assuming everyone has 1 `Normal` style map completion - merged queries
+			FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/recalculatePoints?steamid32=%s&style=%i", g_szApiHost, szsteamid, 0); // we need only 1 name, assuming everyone has 1 `Normal` style map completion - merged queries
 
 			DataPack dp = new DataPack();
 			dp.WriteString("RecalcPlayerRank");
@@ -636,7 +637,8 @@ public void RecalcPlayerRank(int client, char steamid[128]) // API'd up
 
 			/* RipExt */
 			HTTPRequest request = new HTTPRequest(apiRoute);
-			request.Get(apiSelectPlayerNameCallback, dp);
+			// request.Get(apiSelectPlayerNameCallback, dp);
+			request.Get(apiRecalculatePointsCallback, dp);
 		}
 		else
 		{
@@ -684,7 +686,8 @@ public void CalculatePlayerRank(int client, int style) // API'd up
 	if (GetConVarBool(g_hSurfApiEnabled))
 	{
 		char apiRoute[512];
-		FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/point_calc_playerRankName?steamid32=%s&style=%i", g_szApiHost, szSteamId, style);
+		// FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/point_calc_playerRankName?steamid32=%s&style=%i", g_szApiHost, szSteamId, style);
+		FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/recalculatePoints?steamid32=%s&style=%i", g_szApiHost, szSteamId, style);
 
 		DataPack dp = new DataPack();
 		dp.WriteString("CalculatePlayerRank-Init");
@@ -697,7 +700,8 @@ public void CalculatePlayerRank(int client, int style) // API'd up
 
 		/* RipExt */
 		HTTPRequest request = new HTTPRequest(apiRoute);
-		request.Get(apiCalculatePlayerPointsCallback, dp);
+		request.Get(apiRecalculatePointsCallback, dp);
+		// request.Get(apiCalculatePlayerPointsCallback, dp);
 	}
 	else
 	{
@@ -1428,8 +1432,8 @@ public void db_updatePoints(int client, int style) // API'd up x2
 			dp.Reset();
 
 			FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/updatePlayerRankPoints", g_szApiHost);
-			PrintToServer("API LINK: %s", apiRoute);
-			PrintToServer("updatePlayerRankPoints - API BODY: %s", body);
+			// PrintToServer("API LINK: %s", apiRoute);
+			// PrintToServer("updatePlayerRankPoints - API BODY: %s", body);
 
 			/* RipExt - PUT */
 			HTTPRequest request = new HTTPRequest(apiRoute);
