@@ -468,6 +468,466 @@ public void apiSelectMapTierCallback(HTTPResponse response, DataPack data)
 	LogQueryTime("====== [Surf API] : Finished %s in: %f", func, GetGameTime() - time);
 }
 
+public void apiSelectUnfinishedMapsCallback(HTTPResponse response, DataPack data)
+{
+	char func[128];
+	data.ReadString(func, sizeof(func));
+	float xtime	 = data.ReadFloat();
+	int	  client = data.ReadCell();
+	delete data;
+
+	if (response.Status != HTTPStatus_OK)
+	{
+		g_bTierEntryFound = false;
+		if (response.Status == HTTPStatus_NoContent)
+		{
+			LogQueryTime("[Surf API] Map not found (%s)", func);
+			return;
+		}
+
+		if (!g_bServerDataLoaded) db_viewRecordCheckpointInMap();
+
+		LogError("[Surf API] API Error (%s)", func);
+
+		return;
+	}
+
+	char	  szMap[128], szMap2[128], tmpMap[128], consoleString[1024], unfinishedBonusBuffer[772], szName[128];
+	bool	  mapUnfinished, bonusUnfinished;
+	int		  zGrp, count, mapCount, bonusCount, mapListSize = GetArraySize(g_MapList), digits;
+	float	  time = 0.5;
+	int		  tier;
+
+	// Indicate that the response contains a JSON array
+	JSONArray jsonArray = view_as<JSONArray>(response.Data);
+	if (g_bApiDebug)
+	{
+		char out[1024];
+		jsonArray.ToString(out, sizeof(out));
+		PrintToServer("[Surf API] Output (%s): %s", func, out);
+	}
+
+	for (int j = 0; j < jsonArray.Length; j++)
+	{
+		JSONObject jsonObject = view_as<JSONObject>(jsonArray.Get(j));
+
+		// Get the map and check that it is in the mapcycle
+		tier				  = jsonObject.GetInt("tier");
+		jsonObject.GetString("mapname", szMap, sizeof(szMap));
+		zGrp = jsonObject.GetInt("zonegroup");
+		jsonObject.GetString("zonename", szName, sizeof(szName));
+
+		for (int i = 0; i < mapListSize; i++)
+		{
+			GetArrayString(g_MapList, i, szMap2, sizeof(szMap2));
+			if (StrEqual(szMap, szMap2, false))
+			{
+				// Map is in the mapcycle, and is unfinished
+				// Initialize the name
+				if (!tmpMap[0])
+					strcopy(tmpMap, sizeof(tmpMap), szMap);
+
+				// Check if the map changed, if so announce to client's console
+				if (!StrEqual(szMap, tmpMap, false))
+				{
+					if (count < 10)
+						digits = 1;
+					else if (count < 100)
+						digits = 2;
+					else
+						digits = 3;
+
+					if (strlen(tmpMap) < (13 - digits))	   // <- 11
+						Format(tmpMap, sizeof(tmpMap), "%s - Tier %i:\t\t\t\t", tmpMap, tier);
+					else if ((12 - digits) < strlen(tmpMap) < (21 - digits))	// 12 - 19
+						Format(tmpMap, sizeof(tmpMap), "%s - Tier %i:\t\t\t", tmpMap, tier);
+					else if ((20 - digits) < strlen(tmpMap) < (28 - digits))	// 20 - 25
+						Format(tmpMap, sizeof(tmpMap), "%s - Tier %i:\t\t", tmpMap, tier);
+					else
+						Format(tmpMap, sizeof(tmpMap), "%s - Tier %i:\t", tmpMap, tier);
+
+					count++;
+					if (!mapUnfinished)	   // Only bonus is unfinished
+						Format(consoleString, sizeof(consoleString), "%i. %s\t\t|  %s", count, tmpMap, unfinishedBonusBuffer);
+					else if (!bonusUnfinished)	  // Only map is unfinished
+						Format(consoleString, sizeof(consoleString), "%i. %sMap unfinished\t|", count, tmpMap);
+					else	// Both unfinished
+						Format(consoleString, sizeof(consoleString), "%i. %sMap unfinished\t|  %s", count, tmpMap, unfinishedBonusBuffer);
+
+					// Throttle messages to not cause errors on huge mapcycles
+					time		= time + 0.1;
+					Handle pack = CreateDataPack();
+					WritePackCell(pack, client);
+					WritePackString(pack, consoleString);
+					CreateTimer(time, PrintUnfinishedLine, pack);
+
+					mapUnfinished			 = false;
+					bonusUnfinished			 = false;
+					consoleString[0]		 = '\0';
+					unfinishedBonusBuffer[0] = '\0';
+					strcopy(tmpMap, sizeof(tmpMap), szMap);
+				}
+
+				if (zGrp < 1)
+				{
+					mapUnfinished = true;
+					mapCount++;
+				}
+				else
+				{
+					if (!szName[0])
+					{
+						Format(szName, sizeof(szName), "bonus %i", zGrp);
+					}
+					if (bonusUnfinished)
+					{
+						Format(unfinishedBonusBuffer, sizeof(unfinishedBonusBuffer), "%s, %s", unfinishedBonusBuffer, szName);
+					}
+					else
+					{
+						bonusUnfinished = true;
+						Format(unfinishedBonusBuffer, sizeof(unfinishedBonusBuffer), "Bonus: %s", szName);
+					}
+					bonusCount++;
+				}
+				break;
+			}
+		}
+	}
+
+	LogQueryTime("====== [Surf API] : Finished %s in: %f", func, GetGameTime() - xtime);
+}
+
+public void apiViewMapImprovementCallback(HTTPResponse response, DataPack data)
+{
+	char func[128];
+	data.ReadString(func, sizeof(func));
+	float time	 = data.ReadFloat();
+	int	  client = data.ReadCell();
+	delete data;
+
+	if (!IsValidClient(client))
+		return;
+
+	if (response.Status == HTTPStatus_NoContent)
+	{
+		CPrintToChat(client, "%t", "SQL28", g_szChatPrefix);
+		LogQueryTime("[Surf API] No data found (%s)", func);
+		return;
+	}
+	else if (response.Status != HTTPStatus_OK)
+	{
+		LogError("[Surf API] API Error (%s)", func);
+
+		return;
+	}
+
+	JSONObject jsonObject = view_as<JSONObject>(response.Data);
+	if (g_bApiDebug)
+	{
+		char out[1024];
+		jsonObject.ToString(out, sizeof(out));
+		PrintToServer("[Surf API] Output (%s): %s", func, out);
+	}
+
+	char szMapName[32];
+	int	 totalplayers;
+	int	 tier;
+
+	jsonObject.GetString("mapname", szMapName, sizeof(szMapName));
+	totalplayers		  = jsonObject.GetInt("total");
+	tier				  = jsonObject.GetInt("tier");
+
+	g_szMiMapName[client] = szMapName;
+	int type;
+	type = g_MiType[client];
+
+	// Map Completion Points
+	int mapcompletion;
+	if (tier == 1)
+		mapcompletion = 25;
+	else if (tier == 2)
+		mapcompletion = 50;
+	else if (tier == 3)
+		mapcompletion = 100;
+	else if (tier == 4)
+		mapcompletion = 200;
+	else if (tier == 5)
+		mapcompletion = 400;
+	else if (tier == 6)
+		mapcompletion = 600;
+	else if (tier == 7)
+		mapcompletion = 800;
+	else if (tier == 8)
+		mapcompletion = 1000;
+	else	// no tier
+		mapcompletion = 13;
+
+	// Calculate Group Ranks
+	float wrpoints;
+	// float points;
+	float g1points;
+	float g2points;
+	float g3points;
+	float g4points;
+	float g5points;
+
+	// Group 1
+	float fG1top;
+	int	  g1top;
+	int	  g1bot = 11;
+	fG1top		= (float(totalplayers) * g_Group1Pc);
+	fG1top += 11.0;	   // Rank 11 is always End of Group 1
+	g1top			 = RoundToCeil(fG1top);
+
+	int g1difference = (g1top - g1bot);
+	if (g1difference < 4)
+		g1top = (g1bot + 4);
+
+	// Group 2
+	float fG2top;
+	int	  g2top;
+	int	  g2bot;
+	g2bot  = g1top + 1;
+	fG2top = (float(totalplayers) * g_Group2Pc);
+	fG2top += 11.0;
+	g2top			 = RoundToCeil(fG2top);
+
+	int g2difference = (g2top - g2bot);
+	if (g2difference < 4)
+		g2top = (g2bot + 4);
+
+	// Group 3
+	float fG3top;
+	int	  g3top;
+	int	  g3bot;
+	g3bot  = g2top + 1;
+	fG3top = (float(totalplayers) * g_Group3Pc);
+	fG3top += 11.0;
+	g3top			 = RoundToCeil(fG3top);
+
+	int g3difference = (g3top - g3bot);
+	if (g3difference < 4)
+		g3top = (g3bot + 4);
+
+	// Group 4
+	float fG4top;
+	int	  g4top;
+	int	  g4bot;
+	g4bot  = g3top + 1;
+	fG4top = (float(totalplayers) * g_Group4Pc);
+	fG4top += 11.0;
+	g4top			 = RoundToCeil(fG4top);
+
+	int g4difference = (g4top - g4bot);
+	if (g4difference < 4)
+		g4top = (g4bot + 4);
+
+	// Group 5
+	float fG5top;
+	int	  g5top;
+	int	  g5bot;
+	g5bot  = g4top + 1;
+	fG5top = (float(totalplayers) * g_Group5Pc);
+	fG5top += 11.0;
+	g5top			 = RoundToCeil(fG5top);
+
+	int g5difference = (g5top - g5bot);
+	if (g5difference < 4)
+		g5top = (g5bot + 4);
+
+	// WR Points
+	if (tier == 1)
+	{
+		wrpoints = ((float(totalplayers) * 1.75) / 6);
+		wrpoints += 58.5;
+		if (wrpoints < 250.0)
+			wrpoints = 250.0;
+	}
+	else if (tier == 2)
+	{
+		wrpoints = ((float(totalplayers) * 2.8) / 5);
+		wrpoints += 82.15;
+		if (wrpoints < 500.0)
+			wrpoints = 500.0;
+	}
+	else if (tier == 3)
+	{
+		wrpoints = ((float(totalplayers) * 3.5) / 4);
+		if (wrpoints < 750.0)
+			wrpoints = 750.0;
+		else
+			wrpoints += 117;
+	}
+	else if (tier == 4)
+	{
+		wrpoints = ((float(totalplayers) * 5.74) / 4);
+		if (wrpoints < 1000.0)
+			wrpoints = 1000.0;
+		else
+			wrpoints += 164.25;
+	}
+	else if (tier == 5)
+	{
+		wrpoints = ((float(totalplayers) * 7) / 4);
+		if (wrpoints < 1250.0)
+			wrpoints = 1250.0;
+		else
+			wrpoints += 234;
+	}
+	else if (tier == 6)
+	{
+		wrpoints = ((float(totalplayers) * 14) / 4);
+		if (wrpoints < 1500.0)
+			wrpoints = 1500.0;
+		else
+			wrpoints += 328;
+	}
+	else if (tier == 7)
+	{
+		wrpoints = ((float(totalplayers) * 21) / 4);
+		if (wrpoints < 1750.0)
+			wrpoints = 1750.0;
+		else
+			wrpoints += 420;
+	}
+	else if (tier == 8)
+	{
+		wrpoints = ((float(totalplayers) * 30) / 4);
+		if (wrpoints < 2000.0)
+			wrpoints = 2000.0;
+		else
+			wrpoints += 560;
+	}
+	else	// no tier set
+		wrpoints = 25.0;
+
+	// Round WR points up
+	int iwrpoints;
+	iwrpoints = RoundToCeil(wrpoints);
+
+	// Calculate Top 10 Points
+	int	  rank2;
+	float frank2;
+	int	  rank3;
+	float frank3;
+	int	  rank4;
+	float frank4;
+	int	  rank5;
+	float frank5;
+	int	  rank6;
+	float frank6;
+	int	  rank7;
+	float frank7;
+	int	  rank8;
+	float frank8;
+	int	  rank9;
+	float frank9;
+	int	  rank10;
+	float frank10;
+
+	frank2 = (0.80 * iwrpoints);
+	rank2 += RoundToCeil(frank2);
+	frank3 = (0.75 * iwrpoints);
+	rank3 += RoundToCeil(frank3);
+	frank4 = (0.70 * iwrpoints);
+	rank4 += RoundToCeil(frank4);
+	frank5 = (0.65 * iwrpoints);
+	rank5 += RoundToCeil(frank5);
+	frank6 = (0.60 * iwrpoints);
+	rank6 += RoundToCeil(frank6);
+	frank7 = (0.55 * iwrpoints);
+	rank7 += RoundToCeil(frank7);
+	frank8 = (0.50 * iwrpoints);
+	rank8 += RoundToCeil(frank8);
+	frank9 = (0.45 * iwrpoints);
+	rank9 += RoundToCeil(frank9);
+	frank10 = (0.40 * iwrpoints);
+	rank10 += RoundToCeil(frank10);
+
+	// Calculate Group Points
+	g1points = (wrpoints * 0.25);
+	g2points = (g1points / 1.5);
+	g3points = (g2points / 1.5);
+	g4points = (g3points / 1.5);
+	g5points = (g4points / 1.5);
+
+	// Draw Menu Map Improvement Menu
+	if (type == 0)
+	{
+		Menu mi = CreateMenu(MapImprovementMenuHandler);
+		SetMenuTitle(mi, "[Point Reward: %s]\n------------------------------\nTier: %i\n \nMapper: %s\n \n[Completion Points]\n \nMap Finish Points: %i\n \n[Map Improvement Groups]\n \n[Group 1] Ranks 11-%i ~ %i Pts\n[Group 2] Ranks %i-%i ~ %i Pts\n[Group 3] Ranks %i-%i ~ %i Pts\n[Group 4] Ranks %i-%i ~ %i Pts\n[Group 5] Ranks %i-%i ~ %i Pts\n \nSR Pts: %i\n \nTotal Completions: %i\n \n", szMapName, tier, g_szMapperName, mapcompletion, g1top, RoundFloat(g1points), g2bot, g2top, RoundFloat(g2points), g3bot, g3top, RoundFloat(g3points), g4bot, g4top, RoundFloat(g4points), g5bot, g5top, RoundFloat(g5points), iwrpoints, totalplayers);
+		// AddMenuItem(mi, "", "", ITEMDRAW_SPACER);
+		AddMenuItem(mi, szMapName, "Top 10 Points");
+		SetMenuOptionFlags(mi, MENUFLAG_BUTTON_EXIT);
+		DisplayMenu(mi, client, MENU_TIME_FOREVER);
+	}
+	else	// Draw Top 10 Points Menu
+	{
+		Menu mi = CreateMenu(MapImprovementTop10MenuHandler);
+		SetMenuTitle(mi, "[Point Reward: %s]\n------------------------------\nTier: %i\n \n[Completion Points]\n \nMap Finish Points: %i\n \n[Top 10 Points]\n \nRank 1: %i Pts\nRank 2: %i Pts\nRank 3: %i Pts\nRank 4: %i Pts\nRank 5: %i Pts\nRank 6: %i Pts\nRank 7: %i Pts\nRank 8: %i Pts\nRank 9: %i Pts\nRank 10: %i Pts\n \nTotal Completions: %i\n", szMapName, tier, mapcompletion, iwrpoints, rank2, rank3, rank4, rank5, rank6, rank7, rank8, rank9, rank10, totalplayers);
+		AddMenuItem(mi, "", "", ITEMDRAW_SPACER);
+		SetMenuOptionFlags(mi, MENUFLAG_BUTTON_EXIT);
+		DisplayMenu(mi, client, MENU_TIME_FOREVER);
+	}
+	LogQueryTime("====== [Surf API] : Finished %s in: %f", func, GetGameTime() - time);
+	delete jsonObject;
+}
+
+public void apiSelectMapcycleCallback(HTTPResponse response, DataPack data)
+{
+	char func[128];
+	data.ReadString(func, sizeof(func));
+	float xtime = data.ReadFloat();
+	delete data;
+
+	if (response.Status == HTTPStatus_NoContent)
+	{
+		LogQueryTime("[Surf API] No data (%s)", func);
+		return;
+	}
+	else if (response.Status != HTTPStatus_OK)
+	{
+		LogError("[Surf API] API Error (%s)", func);
+
+		return;
+	}
+
+	g_pr_MapCount[0] = 0;
+	ClearArray(g_MapList);
+	char	  szMapname[128];
+	int		  tier;
+
+	// Indicate that the response contains a JSON array
+	JSONArray jsonArray = view_as<JSONArray>(response.Data);
+	if (g_bApiDebug)
+	{
+		char out[1024];
+		jsonArray.ToString(out, sizeof(out));
+		PrintToServer("[Surf API] Output (%s): %s", func, out);
+	}
+	for (int j = 0; j < jsonArray.Length; j++)
+	{
+		JSONObject jsonObject = view_as<JSONObject>(jsonArray.Get(j));
+
+		tier				  = jsonObject.GetInt("tier");
+		jsonObject.GetString("mapname", szMapname, sizeof(szMapname));
+
+		g_pr_MapCount[0]++;
+
+		// No out of bounds arrays please
+		if (tier > 8)
+			tier = 8;
+		else if (tier < 1)
+			tier = 1;
+
+		g_pr_MapCount[tier]++;
+		PushArrayString(g_MapList, szMapname);
+	}
+
+	LogQueryTime("====== [Surf API] : Finished %s in: %f", func, GetGameTime() - xtime);
+}
+
 /* ck_checkpoints */
 public void apiSelectCheckpointsCallback(HTTPResponse response, DataPack data)
 {
@@ -484,9 +944,10 @@ public void apiSelectCheckpointsCallback(HTTPResponse response, DataPack data)
 	{
 		if (!g_bSettingsLoaded[client])
 			LoadClientSetting(client, g_iSettingToLoad[client]);
+
 		if (response.Status == HTTPStatus_NoContent)
 		{
-			LogQueryTime("[Surf API] Map not found (%s)", func);
+			LogQueryTime("[Surf API] No data found (%s)", func);
 			return;
 		}
 		LogError("[Surf API] API Error (%s)", func);

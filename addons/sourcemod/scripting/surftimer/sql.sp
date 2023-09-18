@@ -6829,15 +6829,39 @@ public void sql_CountRankedPlayers2Callback(Handle owner, Handle hndl, const cha
 
 public void db_viewUnfinishedMaps(int client, char szSteamId[32])
 {
-	if (IsValidClient(client))
-		CPrintToChat(client, "%t", "ConsoleOutput", g_szChatPrefix);
-	else
+	if (!IsValidClient(client))
+	{
 		return;
+	}
 
-	char szQuery[720];
-	// Gets all players unfinished maps and bonuses from the database
-	Format(szQuery, sizeof(szQuery), sql_stray_viewUnfinishedMaps, g_ProfileStyleSelect[client], szSteamId, g_ProfileStyleSelect[client], szSteamId);
-	SQL_TQuery(g_hDb, db_viewUnfinishedMapsCallback, szQuery, client, DBPrio_Low);
+	if (GetConVarBool(g_hSurfApiEnabled))
+	{
+		char apiRoute[512];
+		FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/viewUnfinishedMaps?style=%i&steamid32=%s", g_szApiHost, g_ProfileStyleSelect[client], szSteamId);
+			
+		DataPack dp = new DataPack();
+		dp.WriteString("db_viewUnfinishedMaps");
+		dp.WriteFloat(GetGameTime());
+		dp.WriteCell(client);
+		dp.Reset();
+
+		if (g_bApiDebug)
+		{
+			PrintToServer("API ROUTE: %s", apiRoute);
+		}
+
+		/* RipExt */
+		HTTPRequest request = new HTTPRequest(apiRoute);
+		request.Get(apiSelectUnfinishedMapsCallback, dp);
+	}
+	else
+	{
+		CPrintToChat(client, "%t", "ConsoleOutput", g_szChatPrefix);
+		char szQuery[720];
+		// Gets all players unfinished maps and bonuses from the database
+		Format(szQuery, sizeof(szQuery), sql_stray_viewUnfinishedMaps, g_ProfileStyleSelect[client], szSteamId, g_ProfileStyleSelect[client], szSteamId);
+		SQL_TQuery(g_hDb, db_viewUnfinishedMapsCallback, szQuery, client, DBPrio_Low);
+	}
 }
 
 public void db_viewUnfinishedMapsCallback(Handle owner, Handle hndl, const char[] error, any client)
@@ -10217,10 +10241,33 @@ public void db_getPlayerRankUnknownCallback(Handle owner, Handle hndl, const cha
 
 public void db_selectMapImprovement(int client, char szMapName[128])
 {
-	char szQuery[1024];
+	if (GetConVarBool(g_hSurfApiEnabled))
+	{
+		char apiRoute[512];
+		FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/selectMapImprovement?mapname=%s", g_szApiHost, szMapName);
 
-	Format(szQuery, sizeof(szQuery), sql_stray_selectMapImprovement, PERCENT, szMapName, PERCENT);
-	SQL_TQuery(g_hDb, db_selectMapImprovementCallback, szQuery, client, DBPrio_Low);
+		DataPack dp = new DataPack();
+		dp.WriteString("db_selectMapImprovement");
+		dp.WriteFloat(GetGameTime());
+		dp.WriteCell(client);
+		dp.Reset();
+
+		if (g_bApiDebug)
+		{
+			PrintToServer("API ROUTE: %s", apiRoute);
+		}
+
+		/* RipExt */
+		HTTPRequest request = new HTTPRequest(apiRoute);
+		request.Get(apiViewMapImprovementCallback, dp);
+	}
+	else
+	{
+		char szQuery[1024];
+
+		Format(szQuery, sizeof(szQuery), sql_stray_selectMapImprovement, PERCENT, szMapName, PERCENT);
+		SQL_TQuery(g_hDb, db_selectMapImprovementCallback, szQuery, client, DBPrio_Low);
+	}
 }
 
 public void db_selectMapImprovementCallback(Handle owner, Handle hndl, const char[] error, any client)
@@ -11633,7 +11680,29 @@ public void SQL_CheckAnnouncementsCallback(Handle owner, Handle hndl, const char
 
 public void db_selectMapCycle()
 {
-	SQL_TQuery(g_hDb, SQL_SelectMapCycleCallback, sql_stray_selectMapcycle, 1, DBPrio_Low);
+	if (GetConVarBool(g_hSurfApiEnabled))
+	{
+		char apiRoute[512];
+		FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/selectMapcycle", g_szApiHost);
+
+		DataPack dp = new DataPack();
+		dp.WriteString("db_selectMapCycle");
+		dp.WriteFloat(GetGameTime());
+		dp.Reset();
+
+		if (g_bApiDebug)
+		{
+			PrintToServer("API ROUTE: %s", apiRoute);
+		}
+
+		/* RipExt */
+		HTTPRequest request = new HTTPRequest(apiRoute);
+		request.Get(apiSelectMapcycleCallback, dp);
+	}
+	else
+	{
+		SQL_TQuery(g_hDb, SQL_SelectMapCycleCallback, sql_stray_selectMapcycle, 1, DBPrio_Low);
+	}
 }
 
 public void SQL_SelectMapCycleCallback(Handle owner, Handle hndl, const char[] error, any data)

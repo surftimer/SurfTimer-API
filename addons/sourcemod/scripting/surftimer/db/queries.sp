@@ -47,6 +47,9 @@ char sql_selectMapTier[]							= "SELECT tier, ranked, mapper FROM ck_maptier WH
 char sql_insertmaptier[]							= "INSERT INTO ck_maptier (mapname, tier) VALUES ('%s', %i);";
 char sql_updatemaptier[]							= "UPDATE ck_maptier SET tier = %i WHERE mapname ='%s'";
 char sql_updateMapperName[]							= "UPDATE ck_maptier SET mapper = '%s' WHERE mapname = '%s'";
+char sql_stray_viewUnfinishedMaps[]					= "SELECT mapname, zonegroup, zonename, (SELECT tier FROM ck_maptier d WHERE d.mapname = a.mapname) AS tier FROM ck_zones a WHERE (zonetype = 1 OR zonetype = 5) AND (SELECT runtimepro FROM ck_playertimes b WHERE b.mapname = a.mapname AND a.zonegroup = 0 AND b.style = %d AND steamid = '%s' UNION SELECT runtime FROM ck_bonus c WHERE c.mapname = a.mapname AND c.zonegroup = a.zonegroup AND c.style = %d AND steamid = '%s') IS NULL GROUP BY mapname, zonegroup ORDER BY tier, mapname, zonegroup ASC";
+char sql_stray_selectMapImprovement[]				= "SELECT mapname, (SELECT count(1) FROM ck_playertimes b WHERE a.mapname = b.mapname AND b.style = 0) as total, (SELECT tier FROM ck_maptier b WHERE a.mapname = b.mapname) as tier FROM ck_playertimes a where mapname LIKE '%c%s%c' AND style = 0 LIMIT 1;";
+char sql_stray_selectMapcycle[]						= "SELECT mapname, tier FROM ck_maptier ORDER BY mapname ASC";
 
 // ck_playeroptions2
 char sql_createPlayerOptions[]						= "CREATE TABLE IF NOT EXISTS `ck_playeroptions2` (`steamid` varchar(32) NOT NULL DEFAULT '', `timer` int(11) NOT NULL DEFAULT '1', `hide` int(11) NOT NULL DEFAULT '0', `sounds` int(11) NOT NULL DEFAULT '1', `chat` int(11) NOT NULL DEFAULT '0', `viewmodel` int(11) NOT NULL DEFAULT '1', `autobhop` int(11) NOT NULL DEFAULT '1', `checkpoints` int(11) NOT NULL DEFAULT '1', `gradient` int(11) NOT NULL DEFAULT '3', `speedmode` int(11) NOT NULL DEFAULT '0', `centrespeed` int(11) NOT NULL DEFAULT '0', `centrehud` int(11) NOT NULL DEFAULT '1', teleside int(11) NOT NULL DEFAULT '0', `module1c` int(11) NOT NULL DEFAULT '1', `module2c` int(11) NOT NULL DEFAULT '2', `module3c` int(11) NOT NULL DEFAULT '3', `module4c` int(11) NOT NULL DEFAULT '4', `module5c` int(11) NOT NULL DEFAULT '5', `module6c` int(11) NOT NULL DEFAULT '6', `sidehud` int(11) NOT NULL DEFAULT '1', `module1s` int(11) NOT NULL DEFAULT '5', `module2s` int(11) NOT NULL DEFAULT '0', `module3s` int(11) NOT NULL DEFAULT '0', `module4s` int(11) NOT NULL DEFAULT '0', `module5s` int(11) NOT NULL DEFAULT '0', prestrafe int(11) NOT NULL DEFAULT '0', cpmessages int(11) NOT NULL DEFAULT '1', wrcpmessages int(11) NOT NULL DEFAULT '1', hints int(11) NOT NULL DEFAULT '1', csd_update_rate int(11) NOT NULL DEFAULT '1' , csd_pos_x float(11) NOT NULL DEFAULT '0.5' , csd_pos_y float(11) NOT NULL DEFAULT '0.3' , csd_r int(11) NOT NULL DEFAULT '255', csd_g int(11) NOT NULL DEFAULT '255', csd_b int(11) NOT NULL DEFAULT '255', PRIMARY KEY (`steamid`)) DEFAULT CHARSET=utf8mb4;";
@@ -94,11 +97,8 @@ char sql_stray_selectCPR[]							= "SELECT cp, time FROM ck_checkpoints WHERE st
 char sql_stray_deleteSpecificBonus[]				= "DELETE FROM ck_bonus WHERE zonegroup = %i AND mapname = '%s';";	  // part of `zones` delete - will be implemented with other query in 1 endpoint
 
 // ck_maptier
-char sql_stray_viewUnfinishedMaps[]					= "SELECT mapname, zonegroup, zonename, (SELECT tier FROM ck_maptier d WHERE d.mapname = a.mapname) AS tier FROM ck_zones a WHERE (zonetype = 1 OR zonetype = 5) AND (SELECT runtimepro FROM ck_playertimes b WHERE b.mapname = a.mapname AND a.zonegroup = 0 AND b.style = %d AND steamid = '%s' UNION SELECT runtime FROM ck_bonus c WHERE c.mapname = a.mapname AND c.zonegroup = a.zonegroup AND c.style = %d AND steamid = '%s') IS NULL GROUP BY mapname, zonegroup ORDER BY tier, mapname, zonegroup ASC";
-char sql_stray_selectMapImprovement[]				= "SELECT mapname, (SELECT count(1) FROM ck_playertimes b WHERE a.mapname = b.mapname AND b.style = 0) as total, (SELECT tier FROM ck_maptier b WHERE a.mapname = b.mapname) as tier FROM ck_playertimes a where mapname LIKE '%c%s%c' AND style = 0 LIMIT 1;";
-char sql_stray_viewMapnamePr[]						= "SELECT mapname FROM ck_maptier WHERE mapname LIKE '%c%s%c' LIMIT 1;";
-char sql_stray_viewPlayerPrMapInfo[]				= "SELECT mapname, (SELECT COUNT(1) FROM ck_zones WHERE zonetype = '3' AND mapname = '%s') AS stages, (SELECT COUNT(DISTINCT zonegroup) FROM ck_zones WHERE mapname = '%s' AND zonegroup > 0) AS bonuses FROM ck_maptier WHERE mapname = '%s';";
-char sql_stray_selectMapcycle[]						= "SELECT mapname, tier FROM ck_maptier ORDER BY mapname ASC";
+char sql_stray_viewMapnamePr[]						= "SELECT mapname FROM ck_maptier WHERE mapname LIKE '%c%s%c' LIMIT 1;";																																											// waiting for sm_pr trigger query
+char sql_stray_viewPlayerPrMapInfo[]				= "SELECT mapname, (SELECT COUNT(1) FROM ck_zones WHERE zonetype = '3' AND mapname = '%s') AS stages, (SELECT COUNT(DISTINCT zonegroup) FROM ck_zones WHERE mapname = '%s' AND zonegroup > 0) AS bonuses FROM ck_maptier WHERE mapname = '%s';";	// waiting for sm_pr trigger query
 
 // ck_playertemp - function not working properly - lower priority
 char sql_createPlayertmp[]							= "CREATE TABLE IF NOT EXISTS ck_playertemp (steamid VARCHAR(32), mapname VARCHAR(32), cords1 FLOAT NOT NULL DEFAULT '-1.0', cords2 FLOAT NOT NULL DEFAULT '-1.0', cords3 FLOAT NOT NULL DEFAULT '-1.0', angle1 FLOAT NOT NULL DEFAULT '-1.0',angle2 FLOAT NOT NULL DEFAULT '-1.0',angle3 FLOAT NOT NULL DEFAULT '-1.0', EncTickrate INT(12) DEFAULT '-1.0', runtimeTmp decimal(12,6) NOT NULL DEFAULT '-1.000000', Stage INT, zonegroup INT NOT NULL DEFAULT 0, PRIMARY KEY(steamid,mapname)) DEFAULT CHARSET=utf8mb4;";
@@ -107,7 +107,7 @@ char sql_updatePlayerTmp[]							= "UPDATE ck_playertemp SET cords1 = '%f', cord
 char sql_deletePlayerTmp[]							= "DELETE FROM ck_playertemp where steamid = '%s';";
 char sql_selectPlayerTmp[]							= "SELECT cords1,cords2,cords3, angle1, angle2, angle3,runtimeTmp, EncTickrate, Stage, zonegroup FROM ck_playertemp WHERE steamid = '%s' AND mapname = '%s';";
 
-// wipe - not API'd up yet - will be 1 single endpoint
+// wipe - not API'd up yet - will be 1 single endpoint when all wipe queries are retrieved
 char sql_stray_deleteWipePlayerRank[]				= "DELETE FROM ck_playerrank WHERE steamid = '%s';";
 char sql_stray_deleteWipePlayerOptions[]			= "DELETE FROM ck_playeroptions2 WHERE steamid = '%s';";
 char sql_stray_deleteWipePlayerLatestRecords[]		= "DELETE FROM ck_latestrecords WHERE steamid = '%s';";
