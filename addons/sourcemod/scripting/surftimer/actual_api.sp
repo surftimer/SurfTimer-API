@@ -393,8 +393,13 @@ public void apiSelectMapTierCallback(HTTPResponse response, DataPack data)
 	g_bTierEntryFound	  = true;
 
 	JSONObject jsonObject = view_as<JSONObject>(response.Data);
-	jsonObject.ToString(out, sizeof(out));
-	PrintToServer("[Surf API] Output (%s): %s", func, out);
+
+	if (g_bApiDebug)
+	{
+		jsonObject.ToString(out, sizeof(out));
+		PrintToServer("[Surf API] Output (%s): %s", func, out);
+	}
+
 	int	 tier	= jsonObject.GetInt("tier");
 	int	 ranked = jsonObject.GetInt("ranked");
 	char mapper[64];
@@ -1477,10 +1482,14 @@ public void apiSelectPlayerOptionsCallback(HTTPResponse response, DataPack data)
 		return;
 	}
 
-	JSONObject jsonObject		  = view_as<JSONObject>(response.Data);
-	// char out[1024];
-	// jsonObject.ToString(out, sizeof(out));
-	// PrintToServer("[Surf API] Output (%s): %s", func, out);
+	JSONObject jsonObject = view_as<JSONObject>(response.Data);
+
+	if (g_bApiDebug)
+	{
+		char out[1024];
+		jsonObject.ToString(out, sizeof(out));
+		PrintToServer("[Surf API] Output (%s): %s", func, out);
+	}
 
 	// "SELECT timer, hide, sounds, chat, viewmodel, autobhop, checkpoints, gradient, speedmode, centrehud, module1c, module2c, module3c, module4c, module5c, module6c, sidehud, module1s, module2s, module3s, module4s, module5s, prestrafe FROM ck_playeroptions2 where steamid = '%s';"
 
@@ -1563,9 +1572,13 @@ public void apiSelectPlayerNameCallback(HTTPResponse response, DataPack data)
 	}
 
 	JSONObject jsonObject = view_as<JSONObject>(response.Data);
-	// char	   out[1024];
-	// jsonObject.ToString(out, sizeof(out));
-	// PrintToServer("[Surf API] Output (%s): %s", func, out);
+
+	if (g_bApiDebug)
+	{
+		char out[1024];
+		jsonObject.ToString(out, sizeof(out));
+		PrintToServer("[Surf API] Output (%s): %s", func, out);
+	}
 
 	jsonObject.GetString("name", g_pr_szName[clientid], sizeof(g_pr_szName));
 	g_bProfileRecalc[clientid] = true;
@@ -1851,7 +1864,7 @@ public void apiSelectRankedPlayersRankCallback(HTTPResponse response, DataPack d
 		{
 			PrintToServer("API ROUTE: %s", apiRoute);
 		}
-		
+
 		/* RipExt - GET */
 		HTTPRequest request = new HTTPRequest(apiRoute);
 		request.Get(apiSelectRankedPlayersRankCallback, dp);
@@ -2290,15 +2303,23 @@ public void apiSelectPlayerPointsCallback(HTTPResponse response, DataPack data)
 
 	char apiRoute[512];
 	FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/updatePlayerConnections?steamid32=%s", g_szApiHost, g_szSteamID[client]);
+	if (g_bApiDebug)
+	{
+		PrintToServer("API ROUTE: %s", apiRoute);
+	}
+
 	/* RipExt - PUT */
 	HTTPRequest request = new HTTPRequest(apiRoute);
 	request.Put(jsonObject, apiPutCallback, dp);
 
 	// Count players rank
 	if (IsValidClient(client))
+	{
 		for (int i = 0; i < MAX_STYLES; i++)
+		{
 			db_GetPlayerRank(client, i);
-
+		}
+	}
 	delete jsonObject;
 	delete jsonArray;
 	LogQueryTime("====== [Surf API] : Finished %s in: %f", func, GetGameTime() - fTime);
@@ -2393,9 +2414,13 @@ public void apiCalculatePlayerPointsCallback(HTTPResponse response, DataPack dat
 	}
 
 	JSONObject jsonObject = view_as<JSONObject>(response.Data);
-	// char	   out[1024];
-	// jsonObject.ToString(out, sizeof(out));
-	// PrintToServer("[Surf API] Output (%s): %s", func, out);
+
+	if (g_bApiDebug)
+	{
+		char out[1024];
+		jsonObject.ToString(out, sizeof(out));
+		PrintToServer("[Surf API] Output (%s): %s", func, out);
+	}
 
 	if (IsValidClient(client))
 	{

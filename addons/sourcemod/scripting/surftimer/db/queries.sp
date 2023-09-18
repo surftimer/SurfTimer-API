@@ -31,6 +31,8 @@ char sql_selectRecordCheckpoints[]					= "SELECT zonegroup, cp, `time` FROM ck_c
 char sql_deleteCheckpoints[]						= "DELETE FROM ck_checkpoints WHERE mapname = '%s'";
 char sql_selectStageTimes[]							= "SELECT cp, stage_time FROM ck_checkpoints WHERE mapname = '%s' AND steamid = '%s';";
 char sql_selectStageAttempts[]						= "SELECT cp, stage_attempts FROM ck_checkpoints WHERE mapname = '%s' AND steamid = '%s';";
+char sql_stray_selectCPR[]							= "SELECT cp, time FROM ck_checkpoints WHERE steamid = '%s' AND mapname = '%s' AND zonegroup = 0;";
+char sql_stray_ccp_getPlayerPR[]					= "SELECT db1.steamid, db1.mapname, db1.cp, db1.stage_time, db1.stage_attempts, (SELECT count(name)+1 FROM ck_wrcps WHERE style = 0 AND mapname = db1.mapname AND stage = db1.cp AND stage_time > -1.0 AND runtimepro <= db1.stage_time) AS `rank`, (SELECT count(name) FROM ck_wrcps WHERE style = 0 AND mapname = db1.mapname AND stage = db1.cp AND runtimepro > -1.0) AS total FROM ck_checkpoints db1 WHERE db1.mapname = '%s' AND db1.steamid = '%s' AND db1.stage_time > -1.0  ORDER BY cp ASC;";
 
 // ck_latestrecords
 char sql_createLatestRecords[]						= "CREATE TABLE IF NOT EXISTS ck_latestrecords (steamid VARCHAR(32), name VARCHAR(64), runtime decimal(12,6) NOT NULL DEFAULT '-1.000000', map VARCHAR(32), date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY(steamid,map,date)) DEFAULT CHARSET=utf8mb4;";
@@ -43,6 +45,11 @@ char sql_selectMapTier[]							= "SELECT tier, ranked, mapper FROM ck_maptier WH
 char sql_insertmaptier[]							= "INSERT INTO ck_maptier (mapname, tier) VALUES ('%s', %i);";
 char sql_updatemaptier[]							= "UPDATE ck_maptier SET tier = %i WHERE mapname ='%s'";
 char sql_updateMapperName[]							= "UPDATE ck_maptier SET mapper = '%s' WHERE mapname = '%s'";
+char sql_stray_viewUnfinishedMaps[]					= "SELECT mapname, zonegroup, zonename, (SELECT tier FROM ck_maptier d WHERE d.mapname = a.mapname) AS tier FROM ck_zones a WHERE (zonetype = 1 OR zonetype = 5) AND (SELECT runtimepro FROM ck_playertimes b WHERE b.mapname = a.mapname AND a.zonegroup = 0 AND b.style = %d AND steamid = '%s' UNION SELECT runtime FROM ck_bonus c WHERE c.mapname = a.mapname AND c.zonegroup = a.zonegroup AND c.style = %d AND steamid = '%s') IS NULL GROUP BY mapname, zonegroup ORDER BY tier, mapname, zonegroup ASC";
+char sql_stray_selectMapImprovement[]				= "SELECT mapname, (SELECT count(1) FROM ck_playertimes b WHERE a.mapname = b.mapname AND b.style = 0) as total, (SELECT tier FROM ck_maptier b WHERE a.mapname = b.mapname) as tier FROM ck_playertimes a where mapname LIKE '%c%s%c' AND style = 0 LIMIT 1;";
+char sql_stray_viewMapnamePr[]						= "SELECT mapname FROM ck_maptier WHERE mapname LIKE '%c%s%c' LIMIT 1;";
+char sql_stray_viewPlayerPrMapInfo[]				= "SELECT mapname, (SELECT COUNT(1) FROM ck_zones WHERE zonetype = '3' AND mapname = '%s') AS stages, (SELECT COUNT(DISTINCT zonegroup) FROM ck_zones WHERE mapname = '%s' AND zonegroup > 0) AS bonuses FROM ck_maptier WHERE mapname = '%s';";
+char sql_stray_selectMapcycle[]						= "SELECT mapname, tier FROM ck_maptier ORDER BY mapname ASC";
 
 // ck_playeroptions2
 char sql_createPlayerOptions[]						= "CREATE TABLE IF NOT EXISTS `ck_playeroptions2` (`steamid` varchar(32) NOT NULL DEFAULT '', `timer` int(11) NOT NULL DEFAULT '1', `hide` int(11) NOT NULL DEFAULT '0', `sounds` int(11) NOT NULL DEFAULT '1', `chat` int(11) NOT NULL DEFAULT '0', `viewmodel` int(11) NOT NULL DEFAULT '1', `autobhop` int(11) NOT NULL DEFAULT '1', `checkpoints` int(11) NOT NULL DEFAULT '1', `gradient` int(11) NOT NULL DEFAULT '3', `speedmode` int(11) NOT NULL DEFAULT '0', `centrespeed` int(11) NOT NULL DEFAULT '0', `centrehud` int(11) NOT NULL DEFAULT '1', teleside int(11) NOT NULL DEFAULT '0', `module1c` int(11) NOT NULL DEFAULT '1', `module2c` int(11) NOT NULL DEFAULT '2', `module3c` int(11) NOT NULL DEFAULT '3', `module4c` int(11) NOT NULL DEFAULT '4', `module5c` int(11) NOT NULL DEFAULT '5', `module6c` int(11) NOT NULL DEFAULT '6', `sidehud` int(11) NOT NULL DEFAULT '1', `module1s` int(11) NOT NULL DEFAULT '5', `module2s` int(11) NOT NULL DEFAULT '0', `module3s` int(11) NOT NULL DEFAULT '0', `module4s` int(11) NOT NULL DEFAULT '0', `module5s` int(11) NOT NULL DEFAULT '0', prestrafe int(11) NOT NULL DEFAULT '0', cpmessages int(11) NOT NULL DEFAULT '1', wrcpmessages int(11) NOT NULL DEFAULT '1', hints int(11) NOT NULL DEFAULT '1', csd_update_rate int(11) NOT NULL DEFAULT '1' , csd_pos_x float(11) NOT NULL DEFAULT '0.5' , csd_pos_y float(11) NOT NULL DEFAULT '0.3' , csd_r int(11) NOT NULL DEFAULT '255', csd_g int(11) NOT NULL DEFAULT '255', csd_b int(11) NOT NULL DEFAULT '255', PRIMARY KEY (`steamid`)) DEFAULT CHARSET=utf8mb4;";
@@ -66,6 +73,8 @@ char sql_selectRankedPlayers[]						= "SELECT steamid, name from ck_playerrank w
 // char sql_CountRankedPlayers[]						= "SELECT COUNT(steamid) FROM ck_playerrank WHERE style = %i;"; // non ranked players ew
 char sql_CountRankedPlayers2[]						= "SELECT COUNT(steamid) FROM ck_playerrank where points > 0 AND style = %i;";
 char sql_selectPlayerProfile[]						= "SELECT steamid, steamid64, name, country, points, wrpoints, wrbpoints, wrcppoints, top10points, groupspoints, mappoints, bonuspoints, finishedmapspro, finishedbonuses, finishedstages, wrs, wrbs, wrcps, top10s, `groups`, lastseen, countryCode, continentCode FROM ck_playerrank WHERE steamid = '%s' AND style = %i;";
+char sql_stray_point_calc_playerRankName[]			= "SELECT name FROM ck_playerrank WHERE steamid = '%s' AND style = %i;";	// merged with sql_selectPlayerName
+char sql_stray_playerRankByName[]					= "SELECT steamid FROM ck_playerrank WHERE style = %i AND name LIKE '%c%s%c' LIMIT 1;";
 
 // ck_playertemp
 char sql_createPlayertmp[]							= "CREATE TABLE IF NOT EXISTS ck_playertemp (steamid VARCHAR(32), mapname VARCHAR(32), cords1 FLOAT NOT NULL DEFAULT '-1.0', cords2 FLOAT NOT NULL DEFAULT '-1.0', cords3 FLOAT NOT NULL DEFAULT '-1.0', angle1 FLOAT NOT NULL DEFAULT '-1.0',angle2 FLOAT NOT NULL DEFAULT '-1.0',angle3 FLOAT NOT NULL DEFAULT '-1.0', EncTickrate INT(12) DEFAULT '-1.0', runtimeTmp decimal(12,6) NOT NULL DEFAULT '-1.000000', Stage INT, zonegroup INT NOT NULL DEFAULT 0, PRIMARY KEY(steamid,mapname)) DEFAULT CHARSET=utf8mb4;";
@@ -156,30 +165,17 @@ char sql_stray_pr_bonusInfo[]						= "SELECT runtime, zonegroup FROM ck_bonus WH
 
 /* Player Points Calculation */
 char sql_stray_point_calc_countFinishedBonus[]		= "SELECT mapname, (SELECT count(1)+1 FROM ck_bonus b WHERE a.mapname=b.mapname AND a.runtime > b.runtime AND a.zonegroup = b.zonegroup AND b.style = %i) AS `rank`, (SELECT count(1) FROM ck_bonus b WHERE a.mapname = b.mapname AND a.zonegroup = b.zonegroup AND b.style = %i) as total FROM ck_bonus a WHERE steamid = '%s' AND style = %i;";
+char sql_stray_point_calc_finishedStages[]			= "SELECT mapname, stage, (select count(1)+1 from ck_wrcps b where a.mapname=b.mapname and a.runtimepro > b.runtimepro and a.style = b.style and a.stage = b.stage) AS `rank` FROM ck_wrcps a where steamid = '%s' AND style = %i;";
+char sql_stray_point_calc_finishedMaps[]			= "SELECT mapname, (select count(1)+1 from ck_playertimes b where a.mapname=b.mapname and a.runtimepro > b.runtimepro AND b.style = %i) AS `rank`, (SELECT count(1) FROM ck_playertimes b WHERE a.mapname = b.mapname AND b.style = %i) as total, (SELECT tier FROM `ck_maptier` b WHERE a.mapname = b.mapname) as tier FROM ck_playertimes a where steamid = '%s' AND style = %i;";
 
-// ck_checkpoints stray queries
-char sql_stray_deleteWipePlayerCheckpoints[]		= "DELETE FROM ck_checkpoints WHERE steamid = '%s';";
-char sql_stray_selectCPR[]							= "SELECT cp, time FROM ck_checkpoints WHERE steamid = '%s' AND mapname = '%s' AND zonegroup = 0;";
-char sql_stray_ccp_getPlayerPR[]					= "SELECT db1.steamid, db1.mapname, db1.cp, db1.stage_time, db1.stage_attempts, (SELECT count(name)+1 FROM ck_wrcps WHERE style = 0 AND mapname = db1.mapname AND stage = db1.cp AND stage_time > -1.0 AND runtimepro <= db1.stage_time) AS `rank`, (SELECT count(name) FROM ck_wrcps WHERE style = 0 AND mapname = db1.mapname AND stage = db1.cp AND runtimepro > -1.0) AS total FROM ck_checkpoints db1 WHERE db1.mapname = '%s' AND db1.steamid = '%s' AND db1.stage_time > -1.0  ORDER BY cp ASC;";
-
-// ck_latestrecords stray queries
-char sql_stray_deleteWipePlayerLatestRecords[]		= "DELETE FROM ck_latestrecords WHERE steamid = '%s';";
-
-// ck_maptier stray queries
-char sql_stray_viewUnfinishedMaps[]					= "SELECT mapname, zonegroup, zonename, (SELECT tier FROM ck_maptier d WHERE d.mapname = a.mapname) AS tier FROM ck_zones a WHERE (zonetype = 1 OR zonetype = 5) AND (SELECT runtimepro FROM ck_playertimes b WHERE b.mapname = a.mapname AND a.zonegroup = 0 AND b.style = %d AND steamid = '%s' UNION SELECT runtime FROM ck_bonus c WHERE c.mapname = a.mapname AND c.zonegroup = a.zonegroup AND c.style = %d AND steamid = '%s') IS NULL GROUP BY mapname, zonegroup ORDER BY tier, mapname, zonegroup ASC";
-char sql_stray_selectMapImprovement[]				= "SELECT mapname, (SELECT count(1) FROM ck_playertimes b WHERE a.mapname = b.mapname AND b.style = 0) as total, (SELECT tier FROM ck_maptier b WHERE a.mapname = b.mapname) as tier FROM ck_playertimes a where mapname LIKE '%c%s%c' AND style = 0 LIMIT 1;";
-char sql_stray_viewMapnamePr[]						= "SELECT mapname FROM ck_maptier WHERE mapname LIKE '%c%s%c' LIMIT 1;";
-char sql_stray_viewPlayerPrMapInfo[]				= "SELECT mapname, (SELECT COUNT(1) FROM ck_zones WHERE zonetype = '3' AND mapname = '%s') AS stages, (SELECT COUNT(DISTINCT zonegroup) FROM ck_zones WHERE mapname = '%s' AND zonegroup > 0) AS bonuses FROM ck_maptier WHERE mapname = '%s';";
-char sql_stray_selectMapcycle[]						= "SELECT mapname, tier FROM ck_maptier ORDER BY mapname ASC";
-
-// ck_playeroptions2
+// wipe
+char sql_stray_deleteWipePlayerRank[]				= "DELETE FROM ck_playerrank WHERE steamid = '%s';"; // not API'd up yet
 char sql_stray_deleteWipePlayerOptions[]			= "DELETE FROM ck_playeroptions2 WHERE steamid = '%s';";
+char sql_stray_deleteWipePlayerLatestRecords[]		= "DELETE FROM ck_latestrecords WHERE steamid = '%s';";
+char sql_stray_deleteWipePlayerCheckpoints[]		= "DELETE FROM ck_checkpoints WHERE steamid = '%s';";
 
 // ck_playerrank
-char sql_stray_deleteWipePlayerRank[]				= "DELETE FROM ck_playerrank WHERE steamid = '%s';";
-char sql_stray_point_calc_playerRankName[]			= "SELECT name FROM ck_playerrank WHERE steamid = '%s' AND style = %i;";	// merged with sql_selectPlayerName
-char sql_stray_playerRankByName[]					= "SELECT steamid FROM ck_playerrank WHERE style = %i AND name LIKE '%c%s%c' LIMIT 1;";
-char sql_stray_cleanupPlayerRank[]					= "DELETE FROM ck_playerrank WHERE `points` <= 0";
+char sql_stray_cleanupPlayerRank[]					= "DELETE FROM ck_playerrank WHERE `points` <= 0"; // not API'd up yet
 char sql_stray_specificCountryRank[]				= "SELECT COUNT(steamid), country FROM ck_playerrank WHERE country = '%s' AND style = %i;";
 char sql_stray_getPlayerPointsByName[]				= "SELECT points FROM ck_playerrank WHERE name = '%s' AND style = %i;";
 char sql_stray_getPlayerCountryRank[]				= "SELECT COUNT(steamid) + 1 FROM ck_playerrank WHERE country = '%s' AND style = %i AND points > %i;";
@@ -201,8 +197,5 @@ char sql_stray_rankCommand[]						= "SELECT name, points FROM ck_playerrank WHER
 char sql_stray_rankCommandSelf[]					= "SELECT name, points FROM ck_playerrank WHERE steamid = '%s' AND style = 0;";
 char sql_stray_selectPlayerRankUnknown[]			= "SELECT steamid, name, points FROM ck_playerrank WHERE name LIKE '%c%s%c' ORDER BY points DESC LIMIT 0, 1;";
 
-// point calculation
-char sql_stray_point_calc_finishedStages[]			= "SELECT mapname, stage, (select count(1)+1 from ck_wrcps b where a.mapname=b.mapname and a.runtimepro > b.runtimepro and a.style = b.style and a.stage = b.stage) AS `rank` FROM ck_wrcps a where steamid = '%s' AND style = %i;";
-char sql_stray_point_calc_finishedMaps[]			= "SELECT mapname, (select count(1)+1 from ck_playertimes b where a.mapname=b.mapname and a.runtimepro > b.runtimepro AND b.style = %i) AS `rank`, (SELECT count(1) FROM ck_playertimes b WHERE a.mapname = b.mapname AND b.style = %i) as total, (SELECT tier FROM `ck_maptier` b WHERE a.mapname = b.mapname) as tier FROM ck_playertimes a where steamid = '%s' AND style = %i;";
 
 // not done API side
