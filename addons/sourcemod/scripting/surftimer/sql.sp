@@ -4795,7 +4795,7 @@ public void SQL_selectMapTierCallback(Handle owner, Handle hndl, const char[] er
 =             SQL Bonus             =
 ===================================*/
 
-public void db_currentBonusRunRank(int client, int style, int zGroup)
+public void db_currentBonusRunRank(int client, int style, int zGroup) // API'd up
 {
 	char szQuery[512];
 	Handle pack = CreateDataPack();
@@ -4804,8 +4804,32 @@ public void db_currentBonusRunRank(int client, int style, int zGroup)
 
 	float runtime = g_fCurrentRunTime[client];
 
-	Format(szQuery, sizeof(szQuery), sql_stray_viewBonusRunRank, g_szMapName, zGroup, runtime, style);
-	SQL_TQuery(g_hDb, db_viewBonusRunRank, szQuery, pack, DBPrio_Low);
+	if (GetConVarBool(g_hSurfApiEnabled))		
+	{
+		char apiRoute[512];
+		FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/viewBonusRunRank?mapname=%s&zonegroup=%i&runtime=%f&style=%i", g_szApiHost, g_szMapName, zGroup, g_fCurrentRunTime[client], style);
+			
+		DataPack dp = new DataPack();
+		dp.WriteString("db_currentBonusRunRank");
+		dp.WriteFloat(GetGameTime());
+		dp.WriteCell(client);
+		dp.WriteCell(zGroup);
+		dp.Reset();
+
+		if (g_bApiDebug)
+		{
+			PrintToServer("API ROUTE: %s", apiRoute);
+		}
+
+		/* RipExt */
+		HTTPRequest request = new HTTPRequest(apiRoute);
+		request.Get(apiSelectCurrentBonusRunRankCallback, dp);
+	}
+	else
+	{
+		Format(szQuery, sizeof(szQuery), sql_stray_viewBonusRunRank, g_szMapName, zGroup, runtime, style);
+		SQL_TQuery(g_hDb, db_viewBonusRunRank, szQuery, pack, DBPrio_Low);
+	}
 }
 
 public void db_viewBonusRunRank(Handle owner, Handle hndl, const char[] error, any pack)
@@ -5205,7 +5229,7 @@ public void db_viewBonusTotalCount() // API'd up
 	{
 		char szQuery[1024];
 		// SELECT zonegroup, style, count(1) FROM ck_bonus WHERE mapname = '%s' GROUP BY zonegroup, style;
-		Format(szQuery, 1024, sql_selectBonusCount, g_szMapName);
+		Format(szQuery, sizeof(szQuery), sql_selectBonusCount, g_szMapName);
 		SQL_TQuery(g_hDb, SQL_selectBonusTotalCountCallback, szQuery, GetGameTime(), DBPrio_Low);
 	}
 }
@@ -8261,11 +8285,34 @@ public void SQL_selectPersonalPrestrafeSpeeds_StagesCallback(Handle owner, Handl
 	}
 }
 
-public void selectPersonalPrestrafeSpeeds_Bonus(int client, char szSteamId[32])
+public void selectPersonalPrestrafeSpeeds_Bonus(int client, char szSteamId[32]) // API'd up
 {
-	char szQuery[1024];
-	Format(szQuery, sizeof(szQuery), sql_stray_selectPersonalBonusPrestrafeSpeeds, szSteamId, g_szMapName);
-	SQL_TQuery(g_hDb, SQL_selectPersonalPrestrafeSpeeds_BonusCallback, szQuery, client, DBPrio_Low);
+	if (GetConVarBool(g_hSurfApiEnabled))		
+	{
+		char apiRoute[512];
+		FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/selectPersonalBonusPrestrafeSpeeds?steamid32=%s&mapname=%s", g_szApiHost, szSteamId, g_szMapName);
+			
+		DataPack dp = new DataPack();
+		dp.WriteString("selectPersonalPrestrafeSpeeds_Bonus");
+		dp.WriteFloat(GetGameTime());
+		dp.WriteCell(client);
+		dp.Reset();
+
+		if (g_bApiDebug)
+		{
+			PrintToServer("API ROUTE: %s", apiRoute);
+		}
+
+		/* RipExt */
+		HTTPRequest request = new HTTPRequest(apiRoute);
+		request.Get(apiSelectPersonalBonusPreSpeedsCallback, dp);
+	}
+	else
+	{
+		char szQuery[1024];
+		Format(szQuery, sizeof(szQuery), sql_stray_selectPersonalBonusPrestrafeSpeeds, szSteamId, g_szMapName);
+		SQL_TQuery(g_hDb, SQL_selectPersonalPrestrafeSpeeds_BonusCallback, szQuery, client, DBPrio_Low);
+	}
 }
 
 public void SQL_selectPersonalPrestrafeSpeeds_BonusCallback(Handle owner, Handle hndl, const char[] error, any client)
@@ -9019,17 +9066,43 @@ public void SQL_insertBonusStyleCallback(Handle owner, Handle hndl, const char[]
 	CalculatePlayerRank(client);*/
 }
 
-public void db_viewMapRankBonusStyle(int client, int zgroup, int type, int style)
+public void db_viewMapRankBonusStyle(int client, int zgroup, int type, int style) // API'd up
 {
-	char szQuery[1024];
-	Handle pack = CreateDataPack();
-	WritePackCell(pack, client);
-	WritePackCell(pack, zgroup);
-	WritePackCell(pack, type);
-	WritePackCell(pack, style);
+	if (GetConVarBool(g_hSurfApiEnabled))		
+	{
+		char apiRoute[512];
+		FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/selectMapRankBonusStyle?steamid32=%s&mapname=%s&style=%i&zonegroup=%i", g_szApiHost, g_szSteamID[client], g_szMapName, style, zgroup);
+			
+		DataPack dp = new DataPack();
+		dp.WriteString("db_viewMapRankBonusStyle");
+		dp.WriteFloat(GetGameTime());
+		dp.WriteCell(client);
+		dp.WriteCell(zgroup);
+		dp.WriteCell(type);
+		dp.WriteCell(style);
+		dp.Reset();
 
-	Format(szQuery, sizeof(szQuery), sql_stray_selectMapRankBonusStyle, g_szSteamID[client], g_szMapName, style, zgroup, g_szMapName, style, zgroup);
-	SQL_TQuery(g_hDb, db_viewMapRankBonusStyleCallback, szQuery, pack, DBPrio_Low);
+		if (g_bApiDebug)
+		{
+			PrintToServer("API ROUTE: %s", apiRoute);
+		}
+
+		/* RipExt */
+		HTTPRequest request = new HTTPRequest(apiRoute);
+		request.Get(apiSelectMapRankBonusStyleCallback, dp);
+	}
+	else
+	{
+		char szQuery[1024];
+		Handle pack = CreateDataPack();
+		WritePackCell(pack, client);
+		WritePackCell(pack, zgroup);
+		WritePackCell(pack, type);
+		WritePackCell(pack, style);
+
+		Format(szQuery, sizeof(szQuery), sql_stray_selectMapRankBonusStyle, g_szSteamID[client], g_szMapName, style, zgroup, g_szMapName, style, zgroup);
+		SQL_TQuery(g_hDb, db_viewMapRankBonusStyleCallback, szQuery, pack, DBPrio_Low);
+	}
 }
 
 public void db_viewMapRankBonusStyleCallback(Handle owner, Handle hndl, const char[] error, any data)
@@ -9104,15 +9177,40 @@ public void SQL_updateBonusStyleCallback(Handle owner, Handle hndl, const char[]
 	db_viewMapRankBonusStyle(client, zgroup, 2, style);
 }
 
-public void db_currentBonusStyleRunRank(int client, int zGroup, int style)
+public void db_currentBonusStyleRunRank(int client, int zGroup, int style) // API'd up
 {
-	char szQuery[512];
-	Handle pack = CreateDataPack();
-	WritePackCell(pack, client);
-	WritePackCell(pack, zGroup);
-	WritePackCell(pack, style);
-	Format(szQuery, sizeof(szQuery), sql_stray_viewBonusStyleRunRank, g_szMapName, zGroup, style, g_fFinalTime[client]);
-	SQL_TQuery(g_hDb, db_viewBonusStyleRunRank, szQuery, pack, DBPrio_Low);
+	if (GetConVarBool(g_hSurfApiEnabled))		
+	{
+		char apiRoute[512];
+		FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/viewBonusStyleRunRank?mapname=%s&style=%i&zonegroup=%i&runtime=%f", g_szApiHost, g_szMapName, zGroup, style, g_fFinalTime[client]);
+			
+		DataPack dp = new DataPack();
+		dp.WriteString("db_currentBonusStyleRunRank");
+		dp.WriteFloat(GetGameTime());
+		dp.WriteCell(client);
+		dp.WriteCell(zGroup);
+		dp.WriteCell(style);
+		dp.Reset();
+
+		if (g_bApiDebug)
+		{
+			PrintToServer("API ROUTE: %s", apiRoute);
+		}
+
+		/* RipExt */
+		HTTPRequest request = new HTTPRequest(apiRoute);
+		request.Get(apiSelectBonusStyleRunRankCallback, dp);
+	}
+	else
+	{
+		char szQuery[512];
+		Handle pack = CreateDataPack();
+		WritePackCell(pack, client);
+		WritePackCell(pack, zGroup);
+		WritePackCell(pack, style);
+		Format(szQuery, sizeof(szQuery), sql_stray_viewBonusStyleRunRank, g_szMapName, zGroup, style, g_fFinalTime[client]);
+		SQL_TQuery(g_hDb, db_viewBonusStyleRunRank, szQuery, pack, DBPrio_Low);
+	}
 }
 
 public void db_viewBonusStyleRunRank(Handle owner, Handle hndl, const char[] error, any pack)
@@ -9138,16 +9236,40 @@ public void db_viewBonusStyleRunRank(Handle owner, Handle hndl, const char[] err
 	PrintChatBonusStyle(client, zGroup, style, rank);
 }
 
-public void db_viewPersonalBonusStylesRecords(int client, char szSteamId[32], int style)
+public void db_viewPersonalBonusStylesRecords(int client, char szSteamId[32], int style) // API'd up
 {
-	Handle pack = CreateDataPack();
-	WritePackCell(pack, client);
-	WritePackCell(pack, style);
+	if (GetConVarBool(g_hSurfApiEnabled))		
+	{
+		char apiRoute[512];
+		FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/selectPersonalBonusStylesRecords?steamid32=%s&mapname=%s&style=%i", g_szApiHost, szSteamId, g_szMapName, style);
+			
+		DataPack dp = new DataPack();
+		dp.WriteString("db_viewPersonalBonusStylesRecords");
+		dp.WriteFloat(GetGameTime());
+		dp.WriteCell(client);
+		dp.WriteCell(style);
+		dp.Reset();
 
-	char szQuery[1024];
-	// "SELECT runtime, zonegroup FROM ck_bonus WHERE steamid = '%s' AND mapname = '%s' AND runtime > '0.0'";
-	Format(szQuery, sizeof(szQuery), sql_stray_selectPersonalBonusStylesRecords, szSteamId, g_szMapName, style);
-	SQL_TQuery(g_hDb, SQL_selectPersonalBonusStylesRecordsCallback, szQuery, pack, DBPrio_Low);
+		if (g_bApiDebug)
+		{
+			PrintToServer("API ROUTE: %s", apiRoute);
+		}
+
+		/* RipExt */
+		HTTPRequest request = new HTTPRequest(apiRoute);
+		request.Get(apiSelectBonusStyleRecordsCallback, dp);
+	}
+	else
+	{
+		Handle pack = CreateDataPack();
+		WritePackCell(pack, client);
+		WritePackCell(pack, style);
+
+		char szQuery[1024];
+		// "SELECT runtime, zonegroup FROM ck_bonus WHERE steamid = '%s' AND mapname = '%s' AND runtime > '0.0'";
+		Format(szQuery, sizeof(szQuery), sql_stray_selectPersonalBonusStylesRecords, szSteamId, g_szMapName, style);
+		SQL_TQuery(g_hDb, SQL_selectPersonalBonusStylesRecordsCallback, szQuery, pack, DBPrio_Low);
+	}
 }
 
 public void SQL_selectPersonalBonusStylesRecordsCallback(Handle owner, Handle hndl, const char[] error, any pack)
@@ -11933,21 +12055,49 @@ public void db_viewPRinfoMapRankCallback(Handle owner, Handle hndl, const char[]
 
 }
 //GET PLAYER PRINFO MAP RANK
-public void db_viewPRinfoMapRankBonus(int client, char szSteamID[32], char szMapName[128], int zonegroup)
+public void db_viewPRinfoMapRankBonus(int client, char szSteamID[32], char szMapName[128], int zonegroup) // API'd up
 {
 	if (!IsValidClient(client))
+	{
 		return;
+	}
 
-	Handle pack = CreateDataPack();
-	WritePackCell(pack, client);
-	WritePackString(pack, szMapName);
-	WritePackCell(pack, zonegroup);
+	if (GetConVarBool(g_hSurfApiEnabled))
+	{
+		char apiRoute[512];
+		FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/viewPRinfoMapRankBonusCallback?steamid32=%s&mapname=%s&style=%i", g_szApiHost, szSteamID, szMapName, zonegroup);
 
-	char szQuery[512];
+		DataPack dp = new DataPack();
+		dp.WriteString("db_viewPRinfoMapRankBonus");
+		dp.WriteFloat(GetGameTime());
+		dp.WriteCell(client);
+		dp.WriteString(szMapName);
+		dp.WriteCell(zonegroup);
+		dp.Reset();
 
-	Format(szQuery, sizeof(szQuery), sql_stray_viewPRinfoMapRankBonusCallback, szSteamID, PERCENT, szMapName, PERCENT, zonegroup, szMapName, zonegroup);
-	//PrintToConsole(client, "QUERY %s", szQuery);
-	SQL_TQuery(g_hDb, db_viewPRinfoMapRankBonusCallback, szQuery, pack, DBPrio_Low);
+		if (g_bApiDebug)
+		{
+			PrintToServer("API ROUTE: %s", apiRoute);
+		}
+
+		/* RipExt */
+		HTTPRequest request = new HTTPRequest(apiRoute);
+		// request.Get(apiSelectPlayerNameCallback, dp);
+		request.Get(apiViewPRinfoMapRankBonusCallback, dp);
+	}
+	else
+	{
+		Handle pack = CreateDataPack();
+		WritePackCell(pack, client);
+		WritePackString(pack, szMapName);
+		WritePackCell(pack, zonegroup);
+
+		char szQuery[512];
+
+		Format(szQuery, sizeof(szQuery), sql_stray_viewPRinfoMapRankBonusCallback, szSteamID, PERCENT, szMapName, PERCENT, zonegroup, szMapName, zonegroup);
+		//PrintToConsole(client, "QUERY %s", szQuery);
+		SQL_TQuery(g_hDb, db_viewPRinfoMapRankBonusCallback, szQuery, pack, DBPrio_Low);
+	}
 }
 
 public void db_viewPRinfoMapRankBonusCallback(Handle owner, Handle hndl, const char[] error, any pack)
@@ -11983,30 +12133,57 @@ public void db_viewPRinfoMapRankBonusCallback(Handle owner, Handle hndl, const c
 }
 
 //GET THE STEAMID OF THE REQUESTED RANK
-public void db_GetRankSteamID(int client, char szMapName[128], int rank, int zonegroup)
+public void db_GetRankSteamID(int client, char szMapName[128], int rank, int zonegroup) // API'd up
 {
 	if (!IsValidClient(client))
+	{
 		return;
-
-	char szQuery[512];
-
-	Handle pack = CreateDataPack();
-	WritePackCell(pack, client);
-	WritePackString(pack, szMapName);
-	WritePackCell(pack, rank);
-	WritePackCell(pack, zonegroup);
-
-	if(zonegroup == 0){
-		Format(szQuery, 1024, "SELECT steamid FROM ck_playertimes WHERE mapname = '%s' AND style = 0 AND runtimepro > -1.0 ORDER BY runtimepro ASC LIMIT %i, 1;", szMapName, rank - 1);
-		//PrintToConsole(client, "QUERY %s", szQuery);
-		SQL_TQuery(g_hDb, SQL_GetRankSteamIDCallback, szQuery, pack, DBPrio_Low);
-	}
-	else{
-		Format(szQuery, sizeof(szQuery), sql_stray_getRankSteamIdBonus, szMapName, zonegroup, rank - 1);
-		//PrintToConsole(client, "QUERY %s", szQuery);
-		SQL_TQuery(g_hDb, SQL_GetRankSteamIDCallback, szQuery, pack, DBPrio_Low);
 	}
 
+	if (GetConVarBool(g_hSurfApiEnabled))
+	{
+		char apiRoute[512];
+		FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/getRankSteamIdBonus?mapname=%s&zonegroup=%i&limit=%i", g_szApiHost, szMapName, zonegroup, rank - 1);
+
+		DataPack dp = new DataPack();
+		dp.WriteString("db_GetRankSteamID");
+		dp.WriteFloat(GetGameTime());
+		dp.WriteCell(client);
+		dp.WriteString(szMapName);
+		dp.WriteCell(rank);
+		dp.WriteCell(zonegroup);
+		dp.Reset();
+
+		if (g_bApiDebug)
+		{
+			PrintToServer("API ROUTE: %s", apiRoute);
+		}
+
+		/* RipExt */
+		HTTPRequest request = new HTTPRequest(apiRoute);
+		request.Get(apiGetRankSteamIDCallback, dp);
+	}
+	else
+	{
+		char szQuery[512];
+
+		Handle pack = CreateDataPack();
+		WritePackCell(pack, client);
+		WritePackString(pack, szMapName);
+		WritePackCell(pack, rank);
+		WritePackCell(pack, zonegroup);
+
+		if(zonegroup == 0){ // This is handled by API 
+			Format(szQuery, sizeof(szQuery), sql_stray_steamIdFromMapRank, szMapName, rank - 1);
+			//PrintToConsole(client, "QUERY %s", szQuery);
+			SQL_TQuery(g_hDb, SQL_GetRankSteamIDCallback, szQuery, pack, DBPrio_Low);
+		}
+		else{
+			Format(szQuery, sizeof(szQuery), sql_stray_getRankSteamIdBonus, szMapName, zonegroup, rank - 1);
+			//PrintToConsole(client, "QUERY %s", szQuery);
+			SQL_TQuery(g_hDb, SQL_GetRankSteamIDCallback, szQuery, pack, DBPrio_Low);
+		}
+}
 }
 
 public void SQL_GetRankSteamIDCallback(Handle owner, Handle hndl, const char[] error, any pack)
