@@ -2605,7 +2605,7 @@ public void db_selectBonusTopSurfers(int client, char mapname[128], int zGrp, in
 	if (GetConVarBool(g_hSurfApiEnabled))
 	{
 		char apiRoute[512];
-		FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/selectTopBonusSurfers?mapname=%s&style=%i&zonegroup=%i", g_szApiHost, g_szMapName, style, zGrp);
+		FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/selectTopBonusSurfers?mapname=%s&style=%i&zonegroup=%i", g_szApiHost, mapname, style, zGrp);
 
 		DataPack dp = new DataPack();
 		dp.WriteString("db_selectBonusTopSurfers");
