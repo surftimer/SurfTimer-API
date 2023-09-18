@@ -33,6 +33,8 @@ char sql_selectRecordCheckpoints[]					= "SELECT zonegroup, cp, `time` FROM ck_c
 char sql_deleteCheckpoints[]						= "DELETE FROM ck_checkpoints WHERE mapname = '%s'";
 char sql_selectStageTimes[]							= "SELECT cp, stage_time FROM ck_checkpoints WHERE mapname = '%s' AND steamid = '%s';";
 char sql_selectStageAttempts[]						= "SELECT cp, stage_attempts FROM ck_checkpoints WHERE mapname = '%s' AND steamid = '%s';";
+char sql_InsertOrUpdateCheckpoints[]				= "INSERT INTO ck_checkpoints (steamid, mapname, cp, time, stage_time, stage_attempts, zonegroup) VALUES ('%s', '%s', %i, '%f', '%f', %i, %i) ON DUPLICATE KEY UPDATE time='%f', stage_time='%f', stage_attempts=%i;";
+char sql_stray_ccp_getPlayerPR[]					= "SELECT db1.steamid, db1.mapname, db1.cp, db1.stage_time, db1.stage_attempts, (SELECT count(name)+1 FROM ck_wrcps WHERE style = 0 AND mapname = db1.mapname AND stage = db1.cp AND stage_time > -1.0 AND runtimepro <= db1.stage_time) AS `rank`, (SELECT count(name) FROM ck_wrcps WHERE style = 0 AND mapname = db1.mapname AND stage = db1.cp AND runtimepro > -1.0) AS total FROM ck_checkpoints db1 WHERE db1.mapname = '%s' AND db1.steamid = '%s' AND db1.stage_time > -1.0  ORDER BY cp ASC;";
 
 // ck_latestrecords
 char sql_createLatestRecords[]						= "CREATE TABLE IF NOT EXISTS ck_latestrecords (steamid VARCHAR(32), name VARCHAR(64), runtime decimal(12,6) NOT NULL DEFAULT '-1.000000', map VARCHAR(32), date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY(steamid,map,date)) DEFAULT CHARSET=utf8mb4;";
@@ -86,10 +88,7 @@ char sql_stray_point_calc_finishedMaps[]			= "SELECT mapname, (select count(1)+1
 
 // ck_checkpoints
 char sql_createCheckpoints[]						= "CREATE TABLE IF NOT EXISTS ck_checkpoints (steamid VARCHAR(32), mapname VARCHAR(32), cp INT(11) NOT NULL, time decimal(12,6) NOT NULL DEFAULT '-1.000000', zonegroup INT(12) NOT NULL DEFAULT 0, PRIMARY KEY(steamid, mapname, cp, zonegroup)) DEFAULT CHARSET=utf8mb4;";
-// char sql_updateCheckpoints[] = "UPDATE ck_checkpoints SET time='%f', stage_time='%f', stage_attempts=%i WHERE steamid='%s' AND mapname='%s' AND cp =%i AND zonegroup=%i;";
-char sql_InsertOrUpdateCheckpoints[]				= "INSERT INTO ck_checkpoints (steamid, mapname, cp, time, stage_time, stage_attempts, zonegroup) VALUES ('%s', '%s', %i, '%f', '%f', %i, %i) ON DUPLICATE KEY UPDATE time='%f', stage_time='%f', stage_attempts=%i;";
-char sql_stray_selectCPR[]							= "SELECT cp, time FROM ck_checkpoints WHERE steamid = '%s' AND mapname = '%s' AND zonegroup = 0;";
-char sql_stray_ccp_getPlayerPR[]					= "SELECT db1.steamid, db1.mapname, db1.cp, db1.stage_time, db1.stage_attempts, (SELECT count(name)+1 FROM ck_wrcps WHERE style = 0 AND mapname = db1.mapname AND stage = db1.cp AND stage_time > -1.0 AND runtimepro <= db1.stage_time) AS `rank`, (SELECT count(name) FROM ck_wrcps WHERE style = 0 AND mapname = db1.mapname AND stage = db1.cp AND runtimepro > -1.0) AS total FROM ck_checkpoints db1 WHERE db1.mapname = '%s' AND db1.steamid = '%s' AND db1.stage_time > -1.0  ORDER BY cp ASC;";
+char sql_stray_selectCPR[]							= "SELECT cp, time FROM ck_checkpoints WHERE steamid = '%s' AND mapname = '%s' AND zonegroup = 0;";	   // part of a bigger function - waiting for trigger
 
 // ck_bonus
 char sql_stray_deleteSpecificBonus[]				= "DELETE FROM ck_bonus WHERE zonegroup = %i AND mapname = '%s';";	  // part of `zones` delete - will be implemented with other query in 1 endpoint

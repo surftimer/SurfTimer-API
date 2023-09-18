@@ -4056,7 +4056,7 @@ public void db_viewCheckpointsinZoneGroupCallback(Handle owner, Handle hndl, con
 	LogQueryTime("[SurfTimer] : Finished db_viewCheckpointsinZoneGroupCallback in %f", GetGameTime() - fTime);
 }
 
-public void db_InsertOrUpdateCheckpoints(int client, char szSteamID[32], int zGroup)
+public void db_InsertOrUpdateCheckpoints(int client, char szSteamID[32], int zGroup) // API'd up
 {
 	Handle pack = CreateDataPack();
 	WritePackCell(pack, client);
@@ -4069,20 +4069,65 @@ public void db_InsertOrUpdateCheckpoints(int client, char szSteamID[32], int zGr
 		cp_count = g_TotalStages - 1;
 	
 	cp_count += 1;
+	
+	if (GetConVarBool(g_hSurfApiEnabled))
+	{
+		for (int i = 0; i < cp_count; i++)
+		{
+			char body[1024], apiRoute[512];
+			if (g_bhasStages)
+			{
+				FormatEx(body, sizeof(body), api_insertOrUpdateCheckpoints, szSteamID, g_szMapName, i+1, g_fCheckpointTimesNew[zGroup][client][i], g_fStageTimesNew[client][i], g_iStageAttemptsNew[client][i], zGroup);
+			}
+			else
+			{
+				FormatEx(body, sizeof(body), api_insertOrUpdateCheckpoints, szSteamID, g_szMapName, i+1, g_fCheckpointTimesNew[zGroup][client][i], -1.0, -1, zGroup);
+			}
+			FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/insertOrUpdateCheckpoints", g_szApiHost);
 
-	char szQuery[1024];
-	Transaction tAction = new Transaction();
+			JSONObject jsonObject;
+			jsonObject	= JSONObject.FromString(body);
 
-	for (int i = 0; i < cp_count; i++) {
-		if(g_bhasStages)
-			Format(szQuery, sizeof(szQuery), sql_InsertOrUpdateCheckpoints, szSteamID, g_szMapName, i+1, g_fCheckpointTimesNew[zGroup][client][i], g_fStageTimesNew[client][i], g_iStageAttemptsNew[client][i], zGroup, g_fCheckpointTimesNew[zGroup][client][i], g_fStageTimesNew[client][i], g_iStageAttemptsNew[client][i]);
-		else
-			Format(szQuery, sizeof(szQuery), sql_InsertOrUpdateCheckpoints, szSteamID, g_szMapName, i+1, g_fCheckpointTimesNew[zGroup][client][i], -1.0, -1, zGroup, g_fCheckpointTimesNew[zGroup][client][i], -1.0, -1);
-		
-		tAction.AddQuery(szQuery);
+			if (g_bApiDebug)
+			{
+				PrintToServer("API URL: %s", apiRoute);
+				PrintToServer("API BODY: %s", body);
+			}
+
+			DataPack dp = new DataPack();
+			dp.WriteString("db_InsertOrUpdateCheckpoints");
+			dp.WriteFloat(GetGameTime());
+			dp.WriteCell(client);
+			dp.WriteCell(zGroup);
+			dp.Reset();
+
+			/* RipExt */
+			HTTPRequest request = new HTTPRequest(apiRoute);
+			request.Post(jsonObject, apiPostCallback, dp);
+
+			delete jsonObject;
+		}
 	}
+	else
+	{
+		char szQuery[1024];
+		Transaction tAction = new Transaction();
 
-	SQL_ExecuteTransaction(g_hDb, tAction, db_UpdateCheckpointsOnSuccess, db_UpdateCheckpointsOnFailure, pack, DBPrio_Low);
+		for (int i = 0; i < cp_count; i++) 
+		{
+			if (g_bhasStages)
+			{
+				Format(szQuery, sizeof(szQuery), sql_InsertOrUpdateCheckpoints, szSteamID, g_szMapName, i+1, g_fCheckpointTimesNew[zGroup][client][i], g_fStageTimesNew[client][i], g_iStageAttemptsNew[client][i], zGroup, g_fCheckpointTimesNew[zGroup][client][i], g_fStageTimesNew[client][i], g_iStageAttemptsNew[client][i]);
+			}
+			else
+			{
+				Format(szQuery, sizeof(szQuery), sql_InsertOrUpdateCheckpoints, szSteamID, g_szMapName, i+1, g_fCheckpointTimesNew[zGroup][client][i], -1.0, -1, zGroup, g_fCheckpointTimesNew[zGroup][client][i], -1.0, -1);
+			}
+			tAction.AddQuery(szQuery);
+		}
+
+		SQL_ExecuteTransaction(g_hDb, tAction, db_UpdateCheckpointsOnSuccess, db_UpdateCheckpointsOnFailure, pack, DBPrio_Low);
+	}
 }
 
 public void db_UpdateCheckpointsOnSuccess(Handle db, any pack, int numQueries, Handle[] results, any[] queryData)
@@ -11807,10 +11852,33 @@ public void db_selectCPRTargetCPs(const char[] szSteamId, any pack)
 {
 	ResetPack(pack);
 	int client = ReadPackCell(pack);
+	
+	// if (GetConVarBool(g_hSurfApiEnabled)) // CBA to deal with the `pack` that is coming in now, gonna wait until i reach the initial trigger of this
+	// {
+	// 	char apiRoute[512];
+	// 	FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/selectCPR?steamid32=%s&mapname=%s", g_szApiHost, szSteamId, g_szCPRMapName[client]);
 
+	// 	DataPack dp = new DataPack();
+	// 	dp.WriteString("db_selectCPRTargetCPs");
+	// 	dp.WriteFloat(GetGameTime());
+	// 	dp.WriteCell(client);
+	// 	dp.Reset();
+
+	// 	if (g_bApiDebug)
+	// 	{
+	// 		PrintToServer("API ROUTE: %s", apiRoute);
+	// 	}
+
+	// 	/* RipExt */
+	// 	HTTPRequest request = new HTTPRequest(apiRoute);
+	// 	request.Get(apiSelectCprTargetCallback, dp);
+	// }
+	// else
+	// {
 	char szQuery[512];
 	Format(szQuery, sizeof(szQuery), sql_stray_selectCPR, szSteamId, g_szCPRMapName[client]);
 	SQL_TQuery(g_hDb, SQL_SelectCPRTargetCPsCallback, szQuery, pack, DBPrio_Low);
+	// }
 }
 
 public void SQL_SelectCPRTargetCPsCallback(Handle owner, Handle hndl, const char[] error, any pack)
@@ -13642,20 +13710,49 @@ public void SQL_viewCCP_GetMapStageTimes_RecordCallback(Handle owner, Handle hnd
 //STAGE ATTEMPTS OF CCP
 //STAGE RANK OF CCP
 //STAGE TOTAL OF CCP
-public void db_viewCCP_GetPlayerPR(int client, char szSteamID[32], char szMapName[128], float map_time, int map_rank, float record_time, int total_map_completions){
+public void db_viewCCP_GetPlayerPR(int client, char szSteamID[32], char szMapName[128], float map_time, int map_rank, float record_time, int total_map_completions)
+{
+	if (GetConVarBool(g_hSurfApiEnabled))
+	{
+		char apiRoute[512];
+		FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/ccp_getPlayerPR?mapname=%s&steamid32=%s", g_szApiHost, szMapName, szSteamID);
 
-	Handle pack = CreateDataPack();
-	WritePackCell(pack, client); //CLIENT WHO DID SM_CCP
-	WritePackFloat(pack, map_time); //PLAYERS MAP TIME
-	WritePackFloat(pack, record_time); //RECORD MAP TIME
-	WritePackCell(pack, map_rank); //PLAYERS MAP RANK
-	WritePackCell(pack, total_map_completions); // TOTAL COMPLETIONS ON GIVEN MAP
-	WritePackString(pack, szSteamID);  // REQUESTED PLAYER CCP STEAMID
-	WritePackString(pack, szMapName); //MAP USED ON CCP
+		DataPack dp = new DataPack();
+		dp.WriteString("db_viewCCP_GetPlayerPR");
+		dp.WriteFloat(GetGameTime());
+		dp.WriteCell(client); //CLIENT WHO DID SM_CCP
+		dp.WriteFloat(map_time); //PLAYERS MAP TIME
+		dp.WriteFloat(record_time); //RECORD MAP TIME
+		dp.WriteCell(map_rank); //PLAYERS MAP RANK
+		dp.WriteCell(total_map_completions); // TOTAL COMPLETIONS ON GIVEN MAP
+		dp.WriteString(szSteamID);  // REQUESTED PLAYER CCP STEAMID
+		dp.WriteString(szMapName); //MAP USED ON CCP
+		dp.Reset();
 
-	char szQuery[2048];
-	Format(szQuery, sizeof(szQuery), sql_stray_ccp_getPlayerPR, szMapName, szSteamID);
-	SQL_TQuery(g_hDb, SQL_db_viewCCP_GetPlayerPRCallback, szQuery, pack, DBPrio_Low);
+		if (g_bApiDebug)
+		{
+			PrintToServer("API ROUTE: %s", apiRoute);
+		}
+
+		/* RipExt */
+		HTTPRequest request = new HTTPRequest(apiRoute);
+		request.Get(apiSelectPlayerPRCallback, dp);
+	}
+	else
+	{
+		Handle pack = CreateDataPack();
+		WritePackCell(pack, client); //CLIENT WHO DID SM_CCP
+		WritePackFloat(pack, map_time); //PLAYERS MAP TIME
+		WritePackFloat(pack, record_time); //RECORD MAP TIME
+		WritePackCell(pack, map_rank); //PLAYERS MAP RANK
+		WritePackCell(pack, total_map_completions); // TOTAL COMPLETIONS ON GIVEN MAP
+		WritePackString(pack, szSteamID);  // REQUESTED PLAYER CCP STEAMID
+		WritePackString(pack, szMapName); //MAP USED ON CCP
+
+		char szQuery[2048];
+		Format(szQuery, sizeof(szQuery), sql_stray_ccp_getPlayerPR, szMapName, szSteamID);
+		SQL_TQuery(g_hDb, SQL_db_viewCCP_GetPlayerPRCallback, szQuery, pack, DBPrio_Low);
+	}
 }
 
 public void SQL_db_viewCCP_GetPlayerPRCallback(Handle owner, Handle hndl, const char[] error, any pack)

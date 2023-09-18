@@ -72,6 +72,13 @@ public void apiPostCallback(HTTPResponse response, DataPack data)
 		for (int i = 0; i < MAX_STYLES; i++)
 			db_GetPlayerRank(client, i);
 	}
+	else if (StrEqual(func, "db_InsertOrUpdateCheckpoints"))
+	{
+		int client	= data.ReadCell();
+		int zonegrp = data.ReadCell();
+
+		db_viewCheckpointsinZoneGroup(client, g_szSteamID[client], g_szMapName, zonegrp);
+	}
 
 	LogQueryTime("====== [Surf API] : Finished %s in: %f", func, GetGameTime() - fTime);
 	// Delete objects so we avoid memory leaks
@@ -749,6 +756,143 @@ public void apiSelectStageAttemptsCallback(HTTPResponse response, DataPack data)
 		LoadClientSetting(client, g_iSettingToLoad[client]);
 
 	delete jsonArray;
+	LogQueryTime("====== [Surf API] : Finished %s in: %f", func, GetGameTime() - fTime);
+}
+
+public void apiSelectCprTargetCallback(HTTPResponse response, DataPack data)	 // part of a bigger function - waiting for trigger cba with data pack
+{
+	char func[128], firstTargetName[MAX_NAME_LENGTH];
+	data.ReadString(func, sizeof(func));
+	float fTime	 = data.ReadFloat();
+	int	  client = data.ReadCell();
+	int	  rank	 = data.ReadCell();
+	int	  rank2	 = data.ReadCell();
+	data.ReadString(firstTargetName, sizeof(firstTargetName));
+	delete data;
+
+	if (rank2) {}
+
+	if (response.Status == HTTPStatus_NoContent)
+	{
+		LogQueryTime("[Surf API] No content (%s)", func);
+		return;
+	}
+	else if (response.Status != HTTPStatus_OK)
+	{
+		LogError("[Surf API] API Error (%s)", func);
+		return;
+	}
+
+	Menu menu = CreateMenu(CPRMenuHandler);
+	char szTitle[256], szName[MAX_NAME_LENGTH];
+	GetClientName(client, szName, sizeof(szName));
+	Format(szTitle, sizeof(szTitle), "%s VS %s on %s\n \n", firstTargetName, g_szTargetCPR[client], g_szCPRMapName[client], rank);
+	SetMenuTitle(menu, szTitle);
+
+	float targetCPs, comparedCPs;
+	char  szCPR[32], szCompared[32], szItem[256];
+
+	int	  cp_count;
+	if (!g_bhasStages)
+	{
+		cp_count = g_iTotalCheckpoints;
+	}
+	else
+	{
+		cp_count = g_TotalStages - 1;
+	}
+
+	// Indicate that the response contains a JSON array
+	JSONArray jsonArray = view_as<JSONArray>(response.Data);
+	if (jsonArray.Length > 0)
+	{
+		for (int i = 0; i < jsonArray.Length; i++)
+		{
+			JSONObject jsonObject = view_as<JSONObject>(jsonArray.Get(i));
+			int		   cp		  = jsonObject.GetInt("cp");
+			targetCPs			  = jsonObject.GetFloat("time");
+
+			if (cp <= cp_count)
+			{
+				comparedCPs = (g_fClientCPs[client][cp] - targetCPs);
+			}
+			else
+			{
+				continue;
+			}
+			if (targetCPs == 0.0 || g_fClientCPs[client][cp] == 0.0)
+			{
+				continue;
+			}
+
+			FormatTimeFloat(client, targetCPs, 3, szCPR, sizeof(szCPR));
+			FormatTimeFloat(client, comparedCPs, 6, szCompared, sizeof(szCompared));
+			Format(szItem, sizeof(szItem), "CP %i: %s (%s)", cp, szCPR, szCompared);
+			AddMenuItem(menu, "", szItem, ITEMDRAW_DISABLED);
+			delete jsonObject;
+		}
+	}
+
+	char  szTime[32], szCompared2[32];
+	float compared = g_fClientCPs[client][0] - g_fTargetTime[client];
+	FormatTimeFloat(client, g_fClientCPs[client][0], 3, szTime, sizeof(szTime));
+	FormatTimeFloat(client, compared, 6, szCompared2, sizeof(szCompared2));
+	Format(szItem, sizeof(szItem), "Total Time: %s (%s)", szTime, szCompared2);
+	AddMenuItem(menu, "", szItem, ITEMDRAW_DISABLED);
+	SetMenuOptionFlags(menu, MENUFLAG_BUTTON_EXIT);
+	DisplayMenu(menu, client, MENU_TIME_FOREVER);
+
+	LogQueryTime("====== [Surf API] : Finished %s in: %f", func, GetGameTime() - fTime);
+}
+
+public void apiSelectPlayerPRCallback(HTTPResponse response, DataPack data)	// part of a bigger function - cannot test
+{
+	char func[128], szMapName[MAX_NAME_LENGTH], szSteamID[32];
+	data.ReadString(func, sizeof(func));
+	float fTime					= data.ReadFloat();
+	int	  client				= data.ReadCell();
+	float map_time				= data.ReadFloat();
+	float record_time			= data.ReadFloat();
+	int	  map_rank				= data.ReadCell();
+	int	  total_map_completions = data.ReadCell();
+	data.ReadString(szSteamID, sizeof(szSteamID));
+	data.ReadString(szMapName, sizeof(szMapName));
+	delete data;
+
+	if (response.Status == HTTPStatus_NoContent)
+	{
+		LogQueryTime("[Surf API] No content (%s)", func);
+		return;
+	}
+	else if (response.Status != HTTPStatus_OK)
+	{
+		LogError("[Surf API] API Error (%s)", func);
+		return;
+	}
+
+	// Indicate that the response contains a JSON array
+	JSONArray jsonArray = view_as<JSONArray>(response.Data);
+	if (jsonArray.Length > 0)
+	{
+		int total_stages = jsonArray.Length;
+
+		for (int i = 0; i < jsonArray.Length; i++)
+		{
+			JSONObject jsonObject						= view_as<JSONObject>(jsonArray.Get(i));
+			int		   cp								= jsonObject.GetInt("cp");
+
+			g_fCCP_StageTimes_Player[client][cp - 1]	= jsonObject.GetFloat("stage_time");
+			g_iCCP_StageAttempts_Player[client][cp - 1] = jsonObject.GetInt("stage_attempts");
+			g_iCCP_StageRank_Player[client][cp - 1]		= jsonObject.GetInt("rank");
+			g_iCCP_StageTotal_Player[client][cp - 1]	= jsonObject.GetInt("total");
+
+			delete jsonObject;
+		}
+		delete jsonArray;
+
+		DisplayCCPMenu(client, map_time, record_time, map_rank, total_map_completions, total_stages, szSteamID, szMapName);
+	}
+
 	LogQueryTime("====== [Surf API] : Finished %s in: %f", func, GetGameTime() - fTime);
 }
 
