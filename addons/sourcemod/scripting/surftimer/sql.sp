@@ -12542,18 +12542,46 @@ public void sql_selectPracWrcpRecordCallback(Handle owner, Handle hndl, const ch
 }
 
 //sm_crank
-public void db_SelectCountryRank(int client, char szPlayerName[MAX_NAME_LENGTH], char szCountry[100], int style)
+public void db_SelectCountryRank(int client, char szPlayerName[MAX_NAME_LENGTH], char szCountry[100], int style) // API'd up
 {
-	Handle pack = CreateDataPack();
-	WritePackCell(pack, client);
-	WritePackString(pack, szPlayerName);
-	WritePackString(pack, szCountry);
-	WritePackCell(pack, style);
+	
+	if (GetConVarBool(g_hSurfApiEnabled))
+	{
+		char apiRoute[512];
+		FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/specificCountryRank?country=%s&style=%i", g_szApiHost, szCountry, style);
 
-	//GET TOTAL AMOUNT OF PLAYERS
-	char szQuery[512];
-	Format(szQuery, sizeof szQuery, sql_stray_specificCountryRank, szCountry, style);
-	SQL_TQuery(g_hDb, db_SelectCountryRankCallback, szQuery, pack, DBPrio_Low);
+		DataPack dp = new DataPack();
+		dp.WriteString("db_SelectCountryRank");
+		dp.WriteFloat(GetGameTime());
+		dp.WriteCell(client);
+		dp.WriteString(szPlayerName); 
+		dp.WriteString(szCountry);
+		dp.WriteCell(style);
+
+		dp.Reset();
+
+		if (g_bApiDebug)
+		{
+			PrintToServer("API ROUTE: %s", apiRoute);
+		}
+
+		/* RipExt */
+		HTTPRequest request = new HTTPRequest(apiRoute);
+		request.Get(apiSelectCountryRankCallback, dp);
+	}
+	else
+	{
+		Handle pack = CreateDataPack();
+		WritePackCell(pack, client);
+		WritePackString(pack, szPlayerName);
+		WritePackString(pack, szCountry);
+		WritePackCell(pack, style);
+
+		//GET TOTAL AMOUNT OF PLAYERS
+		char szQuery[512];
+		Format(szQuery, sizeof szQuery, sql_stray_specificCountryRank, szCountry, style);
+		SQL_TQuery(g_hDb, db_SelectCountryRankCallback, szQuery, pack, DBPrio_Low);
+	}
 }
 
 public void db_SelectCountryRankCallback(Handle owner, Handle hndl, const char[] error, any pack)
@@ -12577,8 +12605,8 @@ public void db_SelectCountryRankCallback(Handle owner, Handle hndl, const char[]
 	int style = ReadPackCell(pack);
 	CloseHandle(pack);
 
-	if (SQL_HasResultSet(hndl) && SQL_FetchRow(hndl)) {
-
+	if (SQL_HasResultSet(hndl) && SQL_FetchRow(hndl)) 
+	{
 		db_GetPlayerPoints(client, SQL_FetchInt(hndl, 0), szPlayerName, szCountry, style);
 	}
 }

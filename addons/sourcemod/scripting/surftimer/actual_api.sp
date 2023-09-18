@@ -3277,6 +3277,39 @@ public void apiSelectPlayerPointsCallback(HTTPResponse response, DataPack data)
 	return;
 }
 
+public void apiSelectCountryRankCallback(HTTPResponse response, DataPack data)
+{
+	char func[128], szPlayerName[MAX_NAME_LENGTH], szCountry[100];
+	data.ReadString(func, sizeof(func));
+	float fTime	 = data.ReadFloat();
+	int	  client = data.ReadCell();
+	data.ReadString(szPlayerName, sizeof(szPlayerName));
+	data.ReadString(szCountry, sizeof(szCountry));
+	int style = data.ReadCell();
+	delete data;
+
+	if (response.Status == HTTPStatus_NoContent)
+	{
+		LogQueryTime("[Surf API] No entries found (%s)", func);
+		return;
+	}
+	else if (response.Status != HTTPStatus_OK)
+	{
+		LogError("[Surf API] API Error %i (%s)", response.Status, func);
+		return;
+	}
+
+	JSONObject jsonObject = view_as<JSONObject>(response.Data);
+	int		   total	  = jsonObject.GetInt("COUNT(steamid)");
+	db_GetPlayerPoints(client, total, szPlayerName, szCountry, style);
+
+	delete jsonObject;
+
+	LogQueryTime("====== [Surf API] : Finished %s in: %f", func, GetGameTime() - fTime);
+
+	return;
+}
+
 /* Player Points Calculation */
 public void apiCalculatePlayerPointsCallback(HTTPResponse response, DataPack data)
 {
