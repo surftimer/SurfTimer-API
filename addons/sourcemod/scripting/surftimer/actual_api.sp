@@ -86,7 +86,7 @@ public void apiPutCallback(HTTPResponse response, DataPack data)
 	char func[256];
 	data.ReadString(func, sizeof(func));
 	float fTime = data.ReadFloat();
-	PrintToServer("[Surf API] Status (%s): %i", func, response.Status);
+	// PrintToServer("[Surf API] Status (%s): %i", func, response.Status);
 
 	if (response.Status == HTTPStatus_NotModified)
 	{
@@ -3048,7 +3048,7 @@ public void apiRecalculatePointsCallback(HTTPResponse response, DataPack data)
 		GetClientAuthId(client, AuthId_SteamID64, szSteamId64, MAX_NAME_LENGTH, true);
 	}
 
-	if (response.Status == HTTPStatus_NotFound)
+	if (response.Status == HTTPStatus_NoContent)
 	{
 		LogQueryTime("[Surf API] No entries found (%s)", func);
 		// Players first time on server
@@ -3101,9 +3101,8 @@ public void apiRecalculatePointsCallback(HTTPResponse response, DataPack data)
 			g_iPlayTimeSpec[client]				  = 0;
 
 			CalculatePlayerRank(client, style);
-
-			return;
 		}
+		return;
 	}
 	else if (response.Status != HTTPStatus_OK)
 	{
@@ -3124,11 +3123,11 @@ public void apiRecalculatePointsCallback(HTTPResponse response, DataPack data)
 	}
 
 	// Add Bonus calculation code
-	int finishedbonuses = 0;
-	int wrbs			= 0;
+	int		  finishedbonuses = 0;
+	int		  wrbs			  = 0;
 
 	// Indicate that the response contains a JSON array
-	JSONArray bonusArray = view_as<JSONArray>(jsonObject.Get("bonuses"));
+	JSONArray bonusArray	  = view_as<JSONArray>(jsonObject.Get("bonuses"));
 	if (bonusArray.Length > 0)
 	{
 		for (int i = 0; i < bonusArray.Length; i++)
@@ -3269,11 +3268,11 @@ public void apiRecalculatePointsCallback(HTTPResponse response, DataPack data)
 	LogQueryTime("====== [Surf API] : Finished Bonuses in %f for %s (%s | %s)", GetGameTime() - time, szName, szSteamId, szSteamId64);
 
 	// Add Stages calculation code
-	int		  finishedstages			= 0;
-	int		  wrcps						= 0;
+	int		  finishedstages = 0;
+	int		  wrcps			 = 0;
 
 	// Indicate that the response contains a JSON array
-	JSONArray stagesArray				= view_as<JSONArray>(jsonObject.Get("stages"));
+	JSONArray stagesArray	 = view_as<JSONArray>(jsonObject.Get("stages"));
 	if (stagesArray.Length > 0)
 	{
 		for (int i = 0; i < stagesArray.Length; i++)
@@ -3315,10 +3314,10 @@ public void apiRecalculatePointsCallback(HTTPResponse response, DataPack data)
 	LogQueryTime("====== [Surf API] : Finished Stages in %f for %s (%s | %s)", GetGameTime() - time, szName, szSteamId, szSteamId64);
 
 	// Add Maps calculation code
-	int		  finishedMaps			   = 0, wrs;
+	int		  finishedMaps = 0, wrs;
 
 	// Indicate that the response contains a JSON array
-	JSONArray mapsArray				   = view_as<JSONArray>(jsonObject.Get("maps"));
+	JSONArray mapsArray	   = view_as<JSONArray>(jsonObject.Get("maps"));
 	if (mapsArray.Length > 0)
 	{
 		for (int i = 0; i < mapsArray.Length; i++)
