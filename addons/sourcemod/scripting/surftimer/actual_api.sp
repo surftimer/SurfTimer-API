@@ -1285,7 +1285,11 @@ public void apiSelectPlayerSpecificBonusDataCallback(HTTPResponse response, Data
 	dp.Reset();
 
 	FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/selectTotalBonusCompletes?mapname=%s&zonegroup=%i", g_szApiHost, mapname, bonus);
-	PrintToServer("API LINK: %s", apiRoute);
+	if (g_bApiDebug)
+	{
+		PrintToServer("API ROUTE: %s", apiRoute);
+	}
+
 	/* RipExt - GET */
 	HTTPRequest request = new HTTPRequest(apiRoute);
 	request.Get(apiSelectTotalBonusCompletesCallback, dp);
@@ -1333,7 +1337,11 @@ public void apiSelectTotalBonusCompletesCallback(HTTPResponse response, DataPack
 	dp.Reset();
 
 	FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/selectPlayersBonusRank?steamid32=%s&mapname=%s&zonegroup=%i", g_szApiHost, szSteamId, mapname, bonus);
-	PrintToServer("API LINK: %s", apiRoute);
+	if (g_bApiDebug)
+	{
+		PrintToServer("API ROUTE: %s", apiRoute);
+	}
+
 	/* RipExt - GET */
 	HTTPRequest request = new HTTPRequest(apiRoute);
 	request.Get(apiSelectPlayersBonusRankCallback, dp);
@@ -1417,7 +1425,11 @@ public void apiSelectPlayerOptionsCallback(HTTPResponse response, DataPack data)
 			dp.WriteFloat(GetGameTime());
 			dp.Reset();
 
-			PrintToServer("API ROUTE: %s", apiRoute);
+			if (g_bApiDebug)
+			{
+				PrintToServer("API ROUTE: %s", apiRoute);
+			}
+
 			/* RipExt */
 			HTTPRequest request = new HTTPRequest(apiRoute);
 			request.Post(jsonObject, apiPostCallback, dp);
@@ -1790,7 +1802,10 @@ public void apiSelectRankedPlayersRankCallback(HTTPResponse response, DataPack d
 		dp.WriteCell(jsonArray.Length);
 		dp.Reset();
 
-		PrintToServer("API ROUTE: %s", apiRoute);
+		if (g_bApiDebug)
+		{
+			PrintToServer("API ROUTE: %s", apiRoute);
+		}
 
 		/* RipExt */
 		HTTPRequest request = new HTTPRequest(apiRoute);
@@ -1832,7 +1847,11 @@ public void apiSelectRankedPlayersRankCallback(HTTPResponse response, DataPack d
 		dp.Reset();
 
 		FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/selectRankedPlayersRank?style=%i&steamid32=%s", g_szApiHost, 0, szSteamId);
-		PrintToServer("API LINK: %s", apiRoute);
+		if (g_bApiDebug)
+		{
+			PrintToServer("API ROUTE: %s", apiRoute);
+		}
+		
 		/* RipExt - GET */
 		HTTPRequest request = new HTTPRequest(apiRoute);
 		request.Get(apiSelectRankedPlayersRankCallback, dp);
@@ -2089,15 +2108,23 @@ public void apiSelectRankedPlayersCallback(HTTPResponse response, DataPack data)
 	}
 
 	if (MAX_PR_PLAYERS != passedData && g_pr_TableRowCount > passedData)
+	{
 		x = 66 + passedData;
+	}
 	else
+	{
 		x = 66 + g_pr_TableRowCount;
+	}
 
 	if (g_pr_TableRowCount > MAX_PR_PLAYERS)
+	{
 		g_pr_TableRowCount = MAX_PR_PLAYERS;
+	}
 
 	if (x > MAX_PR_PLAYERS)
+	{
 		x = MAX_PR_PLAYERS - 1;
+	}
 
 	if (IsValidClient(g_pr_Recalc_AdminID) && g_bManualRecalc)
 	{
@@ -2316,7 +2343,7 @@ public void apiCalculatePlayerPointsCallback(HTTPResponse response, DataPack dat
 			SQL_EscapeString(g_hDb, szUName, szName, MAX_NAME_LENGTH * 2 + 1);
 
 			// "INSERT INTO ck_playerrank (steamid, name, country) VALUES('%s', '%s', '%s');";
-			// No need to continue calculating, as the doesn't have any records.
+			// No need to continue calculating, as the player doesn't have any records.
 			char apiRoute[512], body[1024];
 
 			// Prepare API call body
@@ -2331,8 +2358,11 @@ public void apiCalculatePlayerPointsCallback(HTTPResponse response, DataPack dat
 			dp.Reset();
 
 			FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/insertPlayerRank", g_szApiHost);
-			PrintToServer("API LINK: %s", apiRoute);
-			PrintToServer("API BODY: %s", body);
+			if (g_bApiDebug)
+			{
+				PrintToServer("API ROUTE: %s", apiRoute);
+				PrintToServer("API BODY: %s", body);
+			}
 
 			/* RipExt - POST */
 			HTTPRequest request = new HTTPRequest(apiRoute);
@@ -2386,7 +2416,10 @@ public void apiCalculatePlayerPointsCallback(HTTPResponse response, DataPack dat
 	dp.WriteCell(style);
 	dp.Reset();
 
-	PrintToServer("API ROUTE: %s", apiRoute);
+	if (g_bApiDebug)
+	{
+		PrintToServer("API ROUTE: %s", apiRoute);
+	}
 
 	/* RipExt */
 	HTTPRequest request = new HTTPRequest(apiRoute);
@@ -2570,7 +2603,10 @@ public void apiCalculatePlayerPointsCountFinishedBonusCallback(HTTPResponse resp
 	dp.WriteCell(style);
 	dp.Reset();
 
-	PrintToServer("API ROUTE: %s", apiRoute);
+	if (g_bApiDebug)
+	{
+		PrintToServer("API ROUTE: %s", apiRoute);
+	}
 
 	/* RipExt */
 	HTTPRequest request = new HTTPRequest(apiRoute);
@@ -2655,7 +2691,10 @@ public void apiCalculatePlayerPointsCountFinishedStagesCallback(HTTPResponse res
 	dp.WriteCell(style);
 	dp.Reset();
 
-	PrintToServer("API ROUTE: %s", apiRoute);
+	if (g_bApiDebug)
+	{
+		PrintToServer("API ROUTE: %s", apiRoute);
+	}
 
 	/* RipExt */
 	HTTPRequest request = new HTTPRequest(apiRoute);
@@ -3080,8 +3119,11 @@ public void apiRecalculatePointsCallback(HTTPResponse response, DataPack data)
 			dp.Reset();
 
 			FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/insertPlayerRank", g_szApiHost);
-			PrintToServer("API LINK: %s", apiRoute);
-			PrintToServer("API BODY: %s", body);
+			if (g_bApiDebug)
+			{
+				PrintToServer("API ROUTE: %s", apiRoute);
+				PrintToServer("API BODY: %s", body);
+			}
 
 			/* RipExt - POST */
 			HTTPRequest request = new HTTPRequest(apiRoute);
@@ -3354,7 +3396,9 @@ public void apiRecalculatePointsCallback(HTTPResponse response, DataPack data)
 
 					int g1difference = (g1top - g1bot);
 					if (g1difference < 4)
+					{
 						g1top = (g1bot + 4);
+					}
 
 					// Group 2
 					float fG2top;
@@ -3367,7 +3411,9 @@ public void apiRecalculatePointsCallback(HTTPResponse response, DataPack data)
 
 					int g2difference = (g2top - g2bot);
 					if (g2difference < 4)
+					{
 						g2top = (g2bot + 4);
+					}
 
 					// Group 3
 					float fG3top;
@@ -3380,7 +3426,9 @@ public void apiRecalculatePointsCallback(HTTPResponse response, DataPack data)
 
 					int g3difference = (g3top - g3bot);
 					if (g3difference < 4)
+					{
 						g3top = (g3bot + 4);
+					}
 
 					// Group 4
 					float fG4top;
@@ -3393,7 +3441,9 @@ public void apiRecalculatePointsCallback(HTTPResponse response, DataPack data)
 
 					int g4difference = (g4top - g4bot);
 					if (g4difference < 4)
+					{
 						g4top = (g4bot + 4);
+					}
 
 					// Group 5
 					float fG5top;
@@ -3406,72 +3456,104 @@ public void apiRecalculatePointsCallback(HTTPResponse response, DataPack data)
 
 					int g5difference = (g5top - g5bot);
 					if (g5difference < 4)
+					{
 						g5top = (g5bot + 4);
+					}
 
 					if (tier == 1)
 					{
 						wrpoints = ((float(totalplayers) * 1.75) / 6);
 						wrpoints += 58.5;
 						if (wrpoints < 250.0)
+						{
 							wrpoints = 250.0;
+						}
 					}
 					else if (tier == 2)
 					{
 						wrpoints = ((float(totalplayers) * 2.8) / 5);
 						wrpoints += 82.15;
 						if (wrpoints < 500.0)
+						{
 							wrpoints = 500.0;
+						}
 					}
 					else if (tier == 3)
 					{
 						wrpoints = ((float(totalplayers) * 3.5) / 4);
 						if (wrpoints < 750.0)
+						{
 							wrpoints = 750.0;
+						}
 						else
+						{
 							wrpoints += 117;
+						}
 					}
 					else if (tier == 4)
 					{
 						wrpoints = ((float(totalplayers) * 5.74) / 4);
 						if (wrpoints < 1000.0)
+						{
 							wrpoints = 1000.0;
+						}
 						else
+						{
 							wrpoints += 164.25;
+						}
 					}
 					else if (tier == 5)
 					{
 						wrpoints = ((float(totalplayers) * 7) / 4);
 						if (wrpoints < 1250.0)
+						{
 							wrpoints = 1250.0;
+						}
 						else
+						{
 							wrpoints += 234;
+						}
 					}
 					else if (tier == 6)
 					{
 						wrpoints = ((float(totalplayers) * 14) / 4);
 						if (wrpoints < 1500.0)
+						{
 							wrpoints = 1500.0;
+						}
 						else
+						{
 							wrpoints += 328;
+						}
 					}
 					else if (tier == 7)
 					{
 						wrpoints = ((float(totalplayers) * 21) / 4);
 						if (wrpoints < 1750.0)
+						{
 							wrpoints = 1750.0;
+						}
 						else
+						{
 							wrpoints += 420;
+						}
 					}
 					else if (tier == 8)
 					{
 						wrpoints = ((float(totalplayers) * 30) / 4);
 						if (wrpoints < 2000.0)
+						{
 							wrpoints = 2000.0;
+						}
 						else
+						{
 							wrpoints += 560;
+						}
 					}
 					else	// no tier set
+					{
 						wrpoints = 25.0;
+					}
 
 					// Round WR points up
 					iwrpoints = RoundToCeil(wrpoints);

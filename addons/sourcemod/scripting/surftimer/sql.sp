@@ -568,7 +568,10 @@ public void db_updateStat(int client, int style) // API'd up
 		dp.Reset();
 
 		FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/updatePlayerRank?finishedmaps=%i&finishedmapspro=%i&steamid32=%s&style=%i", g_szApiHost, g_pr_finishedmaps[client], g_pr_finishedmaps[client], g_szSteamID[client], style);
-		PrintToServer("API LINK: %s", apiRoute);
+		if (g_bApiDebug)
+		{
+			PrintToServer("API ROUTE: %s", apiRoute);
+		}
 
 		/* RipExt - PUT */
 		HTTPRequest request = new HTTPRequest(apiRoute);
@@ -696,7 +699,10 @@ public void CalculatePlayerRank(int client, int style) // API'd up
 		dp.WriteCell(style);
 		dp.Reset();
 
-		PrintToServer("API ROUTE: %s", apiRoute);
+		if (g_bApiDebug)
+		{
+			PrintToServer("API ROUTE: %s", apiRoute);
+		}
 
 		/* RipExt */
 		HTTPRequest request = new HTTPRequest(apiRoute);
@@ -790,9 +796,12 @@ public void sql_CalcuatePlayerRankCallback(Handle owner, Handle hndl, const char
 				dp.Reset();
 
 				FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/insertPlayerRank", g_szApiHost);
-				PrintToServer("API LINK: %s", apiRoute);
-				PrintToServer("API BODY: %s", body);
-
+				if (g_bApiDebug)
+				{
+					PrintToServer("API ROUTE: %s", apiRoute);
+					PrintToServer("API BODY: %s", body);
+				}
+				
 				/* RipExt - POST */
 				HTTPRequest request = new HTTPRequest(apiRoute);
 				request.Post(jsonObject, apiPostCallback, dp);
@@ -1432,8 +1441,11 @@ public void db_updatePoints(int client, int style) // API'd up x2
 			dp.Reset();
 
 			FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/updatePlayerRankPoints", g_szApiHost);
-			// PrintToServer("API LINK: %s", apiRoute);
-			// PrintToServer("updatePlayerRankPoints - API BODY: %s", body);
+			if (g_bApiDebug)
+			{
+				PrintToServer("API ROUTE: %s", apiRoute);
+				PrintToServer("API BODY: %s", body);
+			}
 
 			/* RipExt - PUT */
 			HTTPRequest request = new HTTPRequest(apiRoute);
@@ -1472,8 +1484,11 @@ public void db_updatePoints(int client, int style) // API'd up x2
 				dp2.Reset();
 
 				FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/updatePlayerRankPoints2", g_szApiHost);
-				PrintToServer("API LINK: %s", apiRoute);
-				PrintToServer("updatePlayerRankPoints2 - API BODY: %s", body);
+				if (g_bApiDebug)
+				{
+					PrintToServer("API ROUTE: %s", apiRoute);
+					PrintToServer("API BODY: %s", body);
+				}
 
 				/* RipExt - PUT */
 				HTTPRequest request = new HTTPRequest(apiRoute);
@@ -1638,7 +1653,10 @@ public void db_viewPlayerPoints(int client) // API'd up
 		dp.WriteCell(client);
 		dp.Reset();
 
-		PrintToServer("API ROUTE: %s", apiRoute);
+		if (g_bApiDebug)
+		{
+			PrintToServer("API ROUTE: %s", apiRoute);
+		}
 
 		/* RipExt */
 		HTTPRequest request = new HTTPRequest(apiRoute);
@@ -1729,8 +1747,11 @@ public void db_viewPlayerPointsCallback(Handle owner, Handle hndl, const char[] 
 				dp.Reset();
 
 				FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/insertPlayerRank", g_szApiHost);
-				PrintToServer("API LINK: %s", apiRoute);
-				PrintToServer("API BODY: %s", body);
+				if (g_bApiDebug)
+				{
+					PrintToServer("API ROUTE: %s", apiRoute);
+					PrintToServer("API BODY: %s", body);
+				}
 
 				/* RipExt - POST */
 				HTTPRequest request = new HTTPRequest(apiRoute);
@@ -1781,7 +1802,11 @@ public void db_GetPlayerRank(int client, int style) // API'd up
 		dp.Reset();
 
 		FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/selectRankedPlayersRank?style=%i&steamid32=%s", g_szApiHost, style, g_szSteamID[client]);
-		PrintToServer("API LINK: %s", apiRoute);
+		if (g_bApiDebug)
+		{
+			PrintToServer("API ROUTE: %s", apiRoute);
+		}
+
 		/* RipExt - GET */
 		HTTPRequest request = new HTTPRequest(apiRoute);
 		request.Get(apiSelectRankedPlayersRankCallback, dp);
@@ -1891,7 +1916,11 @@ public void db_viewPlayerProfile(int client, int style, char szSteamId[32], bool
 			dp.Reset();
 
 			FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/selectRankedPlayersRank?style=%i&steamid32=%s", g_szApiHost, style, szSteamId);
-			PrintToServer("API LINK: %s", apiRoute);
+			if (g_bApiDebug)
+			{
+				PrintToServer("API ROUTE: %s", apiRoute);
+			}
+
 			/* RipExt - GET */
 			HTTPRequest request = new HTTPRequest(apiRoute);
 			request.Get(apiSelectRankedPlayersRankCallback, dp);
@@ -1919,7 +1948,11 @@ public void db_viewPlayerProfile(int client, int style, char szSteamId[32], bool
 			dp.Reset();
 
 			FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/playerRankByName?style=%i&name=%s", g_szApiHost, style, szName);
-			PrintToServer("API LINK: %s", apiRoute);
+			if (g_bApiDebug)
+			{
+				PrintToServer("API ROUTE: %s", apiRoute);
+			}
+
 			/* RipExt - GET */
 			HTTPRequest request = new HTTPRequest(apiRoute);
 			request.Get(apiSelectRankedPlayersRankCallback, dp);
@@ -2582,7 +2615,10 @@ public void db_selectBonusTopSurfers(int client, char mapname[128], int zGrp, in
 		dp.WriteCell(zGrp);
 		dp.Reset();
 
-		PrintToServer("API ROUTE: %s", apiRoute);
+		if (g_bApiDebug)
+		{
+			PrintToServer("API ROUTE: %s", apiRoute);
+		}
 
 		/* RipExt */
 		HTTPRequest request = new HTTPRequest(apiRoute);
@@ -3589,7 +3625,11 @@ public void db_viewRecordCheckpointInMap() // API'd up
 		dp.WriteFloat(GetGameTime());
 		dp.Reset();
 
-		PrintToServer("API ROUTE: %s", apiRoute);
+		if (g_bApiDebug)
+		{
+			PrintToServer("API ROUTE: %s", apiRoute);
+		}
+		
 		/* RipExt */
 		HTTPRequest request = new HTTPRequest(apiRoute);
 		request.Get(apiSelectRecordCheckpointCallback, dp);
@@ -3652,7 +3692,11 @@ public void db_viewCheckpoints(int client, char szSteamID[32], char szMapName[12
 		dp.WriteCell(client);
 		dp.Reset();
 
-		PrintToServer("API ROUTE: %s", apiRoute);
+		if (g_bApiDebug)
+		{
+			PrintToServer("API ROUTE: %s", apiRoute);
+		}
+
 		/* RipExt */
 		HTTPRequest request = new HTTPRequest(apiRoute);
 		request.Get(apiSelectCheckpointsCallback, dp);
@@ -3723,7 +3767,11 @@ public void db_LoadCCP_StageTimes(int client) // API'd up
 		dp.WriteCell(client);
 		dp.Reset();
 
-		PrintToServer("API ROUTE: %s", apiRoute);
+		if (g_bApiDebug)
+		{
+			PrintToServer("API ROUTE: %s", apiRoute);
+		}
+
 		/* RipExt */
 		HTTPRequest request = new HTTPRequest(apiRoute);
 		request.Get(apiSelectStageTimesCallback, dp);
@@ -3777,7 +3825,11 @@ public void db_LoadStageAttempts(int client) // API'd up
 		dp.WriteCell(client);
 		dp.Reset();
 
-		PrintToServer("API ROUTE: %s", apiRoute);
+		if (g_bApiDebug)
+		{
+			PrintToServer("API ROUTE: %s", apiRoute);
+		}
+
 		/* RipExt */
 		HTTPRequest request = new HTTPRequest(apiRoute);
 		request.Get(apiSelectStageAttemptsCallback, dp);
@@ -3942,7 +3994,11 @@ public void db_viewCheckpointsinZoneGroup(int client, char szSteamID[32], char s
 		dp.WriteCell(zonegroup);
 		dp.Reset();
 
-		PrintToServer("API ROUTE: %s", apiRoute);
+		if (g_bApiDebug)
+		{
+			PrintToServer("API ROUTE: %s", apiRoute);
+		}
+
 		/* RipExt */
 		HTTPRequest request = new HTTPRequest(apiRoute);
 		request.Get(apiSelectCheckpointsInZonegroupCallback, dp);
@@ -4640,7 +4696,10 @@ public void db_selectMapTier() // API'd up
 		dp.WriteFloat(GetGameTime());
 		dp.Reset();
 
-		PrintToServer("API ROUTE: %s", apiRoute);
+		if (g_bApiDebug)
+		{
+			PrintToServer("API ROUTE: %s", apiRoute);
+		}
 
 		/* RipExt */
 		HTTPRequest request = new HTTPRequest(apiRoute);
@@ -4813,7 +4872,11 @@ public void db_viewMapRankBonus(int client, int zgroup, int type) // API'd up
 		dp.WriteCell(type);
 		dp.Reset();
 
-		PrintToServer("API ROUTE: %s", apiRoute);
+		if (g_bApiDebug)
+		{
+			PrintToServer("API ROUTE: %s", apiRoute);
+		}
+
 		/* RipExt */
 		HTTPRequest request = new HTTPRequest(apiRoute);
 		request.Get(apiSelectPlayerRankBonus, dp);
@@ -4887,7 +4950,11 @@ public void db_viewPersonalBonusRecords(int client, char szSteamId[32]) // API'd
 		dp.WriteCell(client);
 		dp.Reset();
 
-		PrintToServer("API ROUTE: %s", apiRoute);
+		if (g_bApiDebug)
+		{
+			PrintToServer("API ROUTE: %s", apiRoute);
+		}
+
 		/* RipExt */
 		HTTPRequest request = new HTTPRequest(apiRoute);
 		request.Get(apiSelectPersonalBonusCallback, dp);
@@ -4988,7 +5055,11 @@ public void db_viewFastestBonus() // API'd up
 		dp.WriteFloat(GetGameTime());
 		dp.Reset();
 
-		PrintToServer("API ROUTE: %s", apiRoute);
+		if (g_bApiDebug)
+		{
+			PrintToServer("API ROUTE: %s", apiRoute);
+		}
+
 		/* RipExt */
 		HTTPRequest request = new HTTPRequest(apiRoute);
 		request.Get(apiSelectFastestBonusCallback, dp);
@@ -5121,7 +5192,11 @@ public void db_viewBonusTotalCount() // API'd up
 		dp.WriteFloat(GetGameTime());
 		dp.Reset();
 
-		PrintToServer("API ROUTE: %s", apiRoute);
+		if (g_bApiDebug)
+		{
+			PrintToServer("API ROUTE: %s", apiRoute);
+		}
+
 		/* RipExt */
 		HTTPRequest request = new HTTPRequest(apiRoute);
 		request.Get(apiSelectBonusTotalCountCallback, dp);	
@@ -6245,7 +6320,11 @@ public void db_ViewLatestRecords(int client) // API'd up
 		dp.WriteString("db_ViewLatestRecords");
 		dp.Reset();
 
-		PrintToServer("API ROUTE: %s", apiRoute);
+		if (g_bApiDebug)
+		{
+			PrintToServer("API ROUTE: %s", apiRoute);
+		}
+
 		/* RipExt */
 		HTTPRequest request = new HTTPRequest(apiRoute);
 		request.Get(apiViewLatestRecordsCallback, dp);
@@ -6417,7 +6496,11 @@ public void db_CalcAvgRunTimeBonus() // API'd up
 		dp.WriteFloat(GetGameTime());
 		dp.Reset();
 
-		PrintToServer("API ROUTE: %s", apiRoute);
+		if (g_bApiDebug)
+		{
+			PrintToServer("API ROUTE: %s", apiRoute);
+		}
+
 		/* RipExt */
 		HTTPRequest request = new HTTPRequest(apiRoute);
 		request.Get(apiSelectAllBonusTimesInMapCallback, dp);
@@ -6563,7 +6646,11 @@ public void db_CalculatePlayerCount(int style) // API'd up
 		dp.WriteCell(style);
 		dp.Reset();
 
-		PrintToServer("API ROUTE: %s", apiRoute);
+		if (g_bApiDebug)
+		{
+			PrintToServer("API ROUTE: %s", apiRoute);
+		}
+
 		/* RipExt */
 		HTTPRequest request = new HTTPRequest(apiRoute);
 		request.Get(apiSelectCountPlayersCallback, dp);
@@ -6592,7 +6679,11 @@ public void db_CalculatePlayersCountGreater0(int style) // API'd up
 		dp.WriteCell(style);
 		dp.Reset();
 
-		PrintToServer("API ROUTE: %s", apiRoute);
+		if (g_bApiDebug)
+		{
+			PrintToServer("API ROUTE: %s", apiRoute);
+		}
+
 		/* RipExt */
 		HTTPRequest request = new HTTPRequest(apiRoute);
 		request.Get(apiSelectCountPlayersCallback, dp);
@@ -6865,7 +6956,10 @@ public void RefreshPlayerRankTable(int max) // API'd up
 		dp.WriteCell(max);
 		dp.Reset();
 
-		PrintToServer("API ROUTE: %s", apiRoute);
+		if (g_bApiDebug)
+		{
+			PrintToServer("API ROUTE: %s", apiRoute);
+		}
 
 		/* RipExt */
 		HTTPRequest request = new HTTPRequest(apiRoute);
@@ -6993,8 +7087,10 @@ public void db_UpdateLastSeen(int client) // API'd up
 			dp.Reset();
 
 			FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/updateLastSeenMySQL?steamid32=%s", g_szApiHost, g_szSteamID[client]);
-			// PrintToServer("API BODY: %s", body);
-			PrintToServer("API LINK: %s", apiRoute);
+			if (g_bApiDebug)
+			{
+				PrintToServer("API ROUTE: %s", apiRoute);
+			}
 			/* RipExt - PUT */
 			HTTPRequest request = new HTTPRequest(apiRoute);
 			request.Put(jsonObject, apiPutCallback, dp);
@@ -7045,7 +7141,11 @@ public void db_viewPlayerOptions(int client, char szSteamId[32]) // API'd up
 		dp.WriteCell(client);
 		dp.Reset();
 
-		PrintToServer("API ROUTE: %s", apiRoute);
+		if (g_bApiDebug)
+		{
+			PrintToServer("API ROUTE: %s", apiRoute);
+		}
+
 		/* RipExt */
 		HTTPRequest request = new HTTPRequest(apiRoute);
 		request.Get(apiSelectPlayerOptionsCallback, dp);
@@ -7197,8 +7297,12 @@ public void db_updatePlayerOptions(int client) // API'd up
 			dp.Reset();
 
 			FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/updatePlayerOptions", g_szApiHost);
-			// PrintToServer("API BODY: %s", body);
-			PrintToServer("API LINK: %s", apiRoute);
+			if (g_bApiDebug)
+			{
+				PrintToServer("API ROUTE: %s", apiRoute);
+				PrintToServer("API BODY: %s", body);
+			}
+
 			/* RipExt - PUT */
 			HTTPRequest request = new HTTPRequest(apiRoute);
 			request.Put(jsonObject, apiPutCallback, dp);
@@ -7235,8 +7339,10 @@ public void db_selectTopPlayers(int client, int style) // API'd up
 		dp.Reset();
 
 		FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/selectTopPlayers?style=%i", g_szApiHost, style);
-		// PrintToServer("API BODY: %s", body);
-		PrintToServer("API LINK: %s", apiRoute);
+		if (g_bApiDebug)
+		{
+			PrintToServer("API ROUTE: %s", apiRoute);
+		}
 		/* RipExt - GET */
 		HTTPRequest request = new HTTPRequest(apiRoute);
 		request.Get(apiSelectTop100PlayersCallback, dp);
@@ -9625,7 +9731,11 @@ public void db_selectBonusRank(int client, char szSteamId[32], char szMapName[12
 		dp.Reset();
 
 		FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/selectPlayerSpecificBonusData?steamid32=%s&mapname=%s&zonegroup=%i", g_szApiHost, szSteamId, szMapName, bonus);
-		PrintToServer("API LINK: %s", apiRoute);
+		if (g_bApiDebug)
+		{
+			PrintToServer("API ROUTE: %s", apiRoute);
+		}
+
 		/* RipExt - GET */
 		HTTPRequest request = new HTTPRequest(apiRoute);
 		request.Get(apiSelectPlayerSpecificBonusDataCallback, dp);
@@ -9861,7 +9971,10 @@ public void db_selectPlayerRankUnknown(int client, char szName[128]) // API'd up
 		dp.WriteCell(client);
 		dp.Reset();
 
-		PrintToServer("API ROUTE: %s", apiRoute);
+		if (g_bApiDebug)
+		{
+			PrintToServer("API ROUTE: %s", apiRoute);
+		}
 
 		/* RipExt */
 		HTTPRequest request = new HTTPRequest(apiRoute);

@@ -1620,6 +1620,7 @@ int g_iContinentTopStyleSelected[MAXPLAYERS + 1];
 
 
 /* Surf API */
+bool g_bApiDebug = false;
 char g_szApiHost[256];
 char api_PostLatestRec[]		 	= "{\"steamid32\":\"%s\",\"name\":\"%s\",\"runtime\":%f,\"mapname\":\"%s\"}";
 char api_MaptierModel[]		 	 	= "{\"mapname\":\"%s\",\"tier\":%i,\"mappername\":\"%s\"}";
