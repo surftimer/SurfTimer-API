@@ -2080,6 +2080,11 @@ public void apiSelectPersonalBonusPreSpeedsCallback(HTTPResponse response, DataP
 
 	if (response.Status == HTTPStatus_NoContent)
 	{
+		if (!g_bSettingsLoaded[client])
+		{
+			LoadClientSetting(client, g_iSettingToLoad[client]);
+		}
+
 		LogQueryTime("[Surf API] No content (%s)", func);
 		return;
 	}
@@ -2089,6 +2094,7 @@ public void apiSelectPersonalBonusPreSpeedsCallback(HTTPResponse response, DataP
 		{
 			LoadClientSetting(client, g_iSettingToLoad[client]);
 		}
+
 		LogError("[Surf API] API Error (%s)", func);
 		return;
 	}
