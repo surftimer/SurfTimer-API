@@ -39,10 +39,10 @@
 ====================================*/
 
 #include "surftimer/globals.sp"
+#include "surftimer/db/queries.sp"
 #include "surftimer/api.sp"
 #include "surftimer/convars.sp"
 #include "surftimer/misc.sp"
-#include "surftimer/db/queries.sp"
 #include "surftimer/db/updater.sp"
 #include "surftimer/sql.sp"
 #include "surftimer/admin.sp"
