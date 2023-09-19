@@ -137,6 +137,45 @@ char sql_stray_cleanupPlayerRank[]					= "DELETE FROM ck_playerrank WHERE `point
 // char sql_stray_countryRankGetPlayerByName[]			= "SELECT * FROM ck_playerrank WHERE name = '%s';";  // merged with sql_stray_continentPlayerRankByName
 // char sql_stray_continentPlayerPoints[]				= "SELECT points FROM ck_playerrank WHERE name = '%s' AND style = %i;"; // merged with sql_stray_getPlayerPointsByName[]
 
+// ck_spawnlocations
+char sql_createSpawnLocations[]						= "CREATE TABLE IF NOT EXISTS ck_spawnlocations (mapname VARCHAR(54) NOT NULL, pos_x FLOAT NOT NULL, pos_y FLOAT NOT NULL, pos_z FLOAT NOT NULL, ang_x FLOAT NOT NULL, ang_y FLOAT NOT NULL, ang_z FLOAT NOT NULL,  `vel_x` float NOT NULL DEFAULT '0', `vel_y` float NOT NULL DEFAULT '0', `vel_z` float NOT NULL DEFAULT '0', zonegroup INT(12) DEFAULT 0, stage INT(12) DEFAULT 0, teleside INT(11) DEFAULT 0, PRIMARY KEY(mapname, zonegroup, stage, teleside)) DEFAULT CHARSET=utf8mb4;";
+char sql_insertSpawnLocations[]						= "INSERT INTO ck_spawnlocations (mapname, pos_x, pos_y, pos_z, ang_x, ang_y, ang_z, vel_x, vel_y, vel_z, zonegroup, teleside) VALUES ('%s', '%f', '%f', '%f', '%f', '%f', '%f', '%f', '%f', '%f', %i, %i);";
+char sql_updateSpawnLocations[]						= "UPDATE ck_spawnlocations SET pos_x = '%f', pos_y = '%f', pos_z = '%f', ang_x = '%f', ang_y = '%f', ang_z = '%f', vel_x = '%f', vel_y = '%f', vel_z = '%f' WHERE mapname = '%s' AND zonegroup = %i AND teleside = %i;";
+char sql_selectSpawnLocations[]						= "SELECT mapname, pos_x, pos_y, pos_z, ang_x, ang_y, ang_z, vel_x, vel_y, vel_z, zonegroup, stage, teleside FROM ck_spawnlocations WHERE mapname ='%s';";
+char sql_deleteSpawnLocations[]						= "DELETE FROM ck_spawnlocations WHERE mapname = '%s' AND zonegroup = %i AND stage = 1 AND teleside = %i;";
+char sql_stray_getSpawnPoints[]						= "SELECT pos_x, pos_y, pos_z, ang_x, ang_y, ang_z FROM ck_spawnlocations WHERE mapname = '%s' AND zonegroup = 0;";
+
+// ck_zones
+char sql_createZones[]								= "CREATE TABLE `ck_zones` (`mapname` varchar(54) NOT NULL, `zoneid` int(12) NOT NULL DEFAULT '-1', `zonetype` int(12) DEFAULT '-1', `zonetypeid` int(12) DEFAULT '-1', `pointa_x` float DEFAULT '-1', `pointa_y` float DEFAULT '-1', `pointa_z` float DEFAULT '-1', `pointb_x` float DEFAULT '-1', `pointb_y` float DEFAULT '-1', `pointb_z` float DEFAULT '-1', `vis` int(12) DEFAULT '0', `team` int(12) DEFAULT '0', `zonegroup` int(11) NOT NULL DEFAULT '0', `zonename` varchar(128) DEFAULT NULL, `hookname` varchar(128) DEFAULT 'None', `targetname` varchar(128) DEFAULT 'player', `onejumplimit` int(12) NOT NULL DEFAULT '1', `prespeed` int(64) NOT NULL DEFAULT '%.1f', PRIMARY KEY (`mapname`,`zoneid`)) DEFAULT CHARSET=utf8mb4;";
+char sql_insertZones[]								= "INSERT INTO ck_zones (mapname, zoneid, zonetype, zonetypeid, pointa_x, pointa_y, pointa_z, pointb_x, pointb_y, pointb_z, vis, team, zonegroup, zonename, hookname, targetname, onejumplimit, prespeed) VALUES ('%s', %i, %i, %i, '%f', '%f', '%f', '%f', '%f', '%f', %i, %i, %i,'%s','%s','%s',%i,%f)";
+char sql_updateZone[]								= "UPDATE ck_zones SET zonetype = %i, zonetypeid = %i, pointa_x = '%f', pointa_y ='%f', pointa_z = '%f', pointb_x = '%f', pointb_y = '%f', pointb_z = '%f', vis = %i, team = %i, onejumplimit = %i, prespeed = '%f', hookname = '%s', targetname = '%s', zonegroup = %i WHERE zoneid = %i AND mapname = '%s'";
+char sql_selectzoneTypeIds[]						= "SELECT zonetypeid FROM ck_zones WHERE mapname='%s' AND zonetype=%i AND zonegroup = %i;";
+char sql_selectMapZones[]							= "SELECT zoneid, zonetype, zonetypeid, pointa_x, pointa_y, pointa_z, pointb_x, pointb_y, pointb_z, vis, team, zonegroup, zonename, hookname, targetname, onejumplimit, prespeed FROM ck_zones WHERE mapname = '%s' ORDER BY zonetypeid ASC";
+char sql_selectTotalBonusCount[]					= "SELECT mapname, zoneid, zonetype, zonetypeid, pointa_x, pointa_y, pointa_z, pointb_x, pointb_y, pointb_z, vis, team, zonegroup, zonename FROM ck_zones WHERE zonetype = 3 GROUP BY mapname, zonegroup;";
+char sql_selectZoneIds[]							= "SELECT mapname, zoneid, zonetype, zonetypeid, pointa_x, pointa_y, pointa_z, pointb_x, pointb_y, pointb_z, vis, team, zonegroup, zonename, hookname, targetname, onejumplimit, prespeed FROM ck_zones WHERE mapname = '%s' ORDER BY zoneid ASC";
+char sql_selectBonusesInMap[]						= "SELECT mapname, zonegroup, zonename FROM `ck_zones` WHERE mapname LIKE '%c%s%c' AND zonegroup > 0 GROUP BY zonegroup;";
+char sql_deleteMapZones[]							= "DELETE FROM ck_zones WHERE mapname = '%s'";
+char sql_deleteZone[]								= "DELETE FROM ck_zones WHERE mapname = '%s' AND zoneid = %i";
+char sql_deleteZonesInGroup[]						= "DELETE FROM ck_zones WHERE mapname = '%s' AND zonegroup = %i";
+char sql_setZoneNames[]								= "UPDATE ck_zones SET zonename = '%s' WHERE mapname = '%s' AND zonegroup = %i;";
+
+// ck_prinfo
+char sql_CreatePrinfo[]								= "CREATE TABLE IF NOT EXISTS ck_prinfo (steamid VARCHAR(32), name VARCHAR(64), mapname VARCHAR(32), runtime decimal(12,6) NOT NULL DEFAULT '-1.000000', zonegroup INT(12) NOT NULL DEFAULT '0', PRtimeinzone decimal(12,6) NOT NULL DEFAULT '-1.000000', PRcomplete FLOAT NOT NULL DEFAULT '0.0', PRattempts FLOAT NOT NULL DEFAULT '0.0', PRstcomplete FLOAT NOT NULL DEFAULT '0.0', PRIMARY KEY(steamid, mapname, zonegroup)) DEFAULT CHARSET=utf8mb4;";
+char sql_selectPR[]									= "SELECT steamid, name, mapname, zonegroup, PRtimeinzone, PRcomplete, PRattempts, PRstcomplete FROM ck_prinfo WHERE steamid = '%s' AND mapname = '%s' AND zonegroup= %i;";
+char sql_insertPR[]									= "INSERT INTO ck_prinfo (steamid, name, mapname, runtime, zonegroup, PRtimeinzone, PRcomplete, PRattempts, PRstcomplete) VALUES('%s', '%s', '%s', '%f', %i, '%f', '%f', '%f', '%f');";
+// char sql_selectBonusPR[]							= "SELECT steamid, name, mapname, zonegroup, PRtimeinzone, PRcomplete, PRattempts, PRstcomplete FROM ck_prinfo WHERE steamid = '%s' AND mapname = '%s' AND zonegroup = %i;"; // merged with sql_selectPR
+char sql_updatePrinfo[]								= "UPDATE ck_prinfo SET PRtimeinzone = '%f', PRcomplete = '%f', PRattempts = '%f', PRstcomplete = '%f' WHERE steamid = '%s' AND mapname = '%s' AND zonegroup = %i;";
+char sql_updatePrinfo_withruntime[]					= "UPDATE ck_prinfo SET PRtimeinzone = '%f', PRcomplete = '%f', PRattempts = '%f', PRstcomplete = '%f', runtime = '%f' WHERE steamid = '%s' AND mapname = '%s' AND zonegroup = %i;";
+char sql_clearPRruntime[]							= "UPDATE ck_prinfo SET runtime = '0.0' WHERE steamid = '%s' AND mapname = '%s' AND zonegroup = %i;";
+// char sql_stray_PRinfoUnknownWithMap[]				= "SELECT steamid, name, mapname, runtime, PRtimeinzone, PRcomplete, PRattempts, PRstcomplete FROM ck_prinfo WHERE mapname = '%s' AND zonegroup = '%i' AND steamid = '%s';"; // merged with sql_stray_PRinfoByName
+char sql_stray_PRinfoByName[]						= "SELECT steamid, name, mapname, runtime, PRtimeinzone, PRcomplete, PRattempts, PRstcomplete FROM ck_prinfo WHERE mapname LIKE '%c%s%c' AND zonegroup = '%i' AND steamid = '%s';";
+
+// ck_replays
+char sql_createReplays[]							= "CREATE TABLE IF NOT EXISTS ck_replays (mapname VARCHAR(32), cp int(12) NOT NULL DEFAULT '0', frame int(12) NOT NULL DEFAULT '0', style INT(12) NOT NULL DEFAULT '0', PRIMARY KEY(mapname, cp, style)) DEFAULT CHARSET=utf8mb4;";
+char sql_selectReplayCPTicksAll[]					= "SELECT cp, frame, style FROM ck_replays WHERE mapname = '%s' AND style = %i ORDER BY cp ASC;";
+char sql_insertReplayCPTicks[]						= "INSERT INTO ck_replays (mapname, cp, frame, style) VALUES ('%s', %i, %i, %i)";
+char sql_updateReplayCPTicks[]						= "UPDATE ck_replays SET frame=%i WHERE mapname='%s' AND cp =%i AND style=%i;";
+
 /////////////////////////
 //  NOT DONE API SIDE  //
 ////////////////////////
@@ -160,51 +199,15 @@ char sql_selectPlayerRankProTime[]					= "SELECT COUNT(*) FROM ck_playertimes WH
 char sql_selectAllMapTimesinMap[]					= "SELECT runtimepro from ck_playertimes WHERE mapname = '%s';";
 char sql_selectMapRankUnknownWithMap[]				= "SELECT `steamid`, `name`, `mapname`, `runtimepro` FROM `ck_playertimes` WHERE `mapname` = '%s' AND style = 0 ORDER BY `runtimepro` ASC LIMIT %i, 1;";
 
-// ck_spawnlocations
-char sql_createSpawnLocations[]						= "CREATE TABLE IF NOT EXISTS ck_spawnlocations (mapname VARCHAR(54) NOT NULL, pos_x FLOAT NOT NULL, pos_y FLOAT NOT NULL, pos_z FLOAT NOT NULL, ang_x FLOAT NOT NULL, ang_y FLOAT NOT NULL, ang_z FLOAT NOT NULL,  `vel_x` float NOT NULL DEFAULT '0', `vel_y` float NOT NULL DEFAULT '0', `vel_z` float NOT NULL DEFAULT '0', zonegroup INT(12) DEFAULT 0, stage INT(12) DEFAULT 0, teleside INT(11) DEFAULT 0, PRIMARY KEY(mapname, zonegroup, stage, teleside)) DEFAULT CHARSET=utf8mb4;";
-char sql_insertSpawnLocations[]						= "INSERT INTO ck_spawnlocations (mapname, pos_x, pos_y, pos_z, ang_x, ang_y, ang_z, vel_x, vel_y, vel_z, zonegroup, teleside) VALUES ('%s', '%f', '%f', '%f', '%f', '%f', '%f', '%f', '%f', '%f', %i, %i);";
-char sql_updateSpawnLocations[]						= "UPDATE ck_spawnlocations SET pos_x = '%f', pos_y = '%f', pos_z = '%f', ang_x = '%f', ang_y = '%f', ang_z = '%f', vel_x = '%f', vel_y = '%f', vel_z = '%f' WHERE mapname = '%s' AND zonegroup = %i AND teleside = %i;";
-char sql_selectSpawnLocations[]						= "SELECT mapname, pos_x, pos_y, pos_z, ang_x, ang_y, ang_z, vel_x, vel_y, vel_z, zonegroup, stage, teleside FROM ck_spawnlocations WHERE mapname ='%s';";
-char sql_deleteSpawnLocations[]						= "DELETE FROM ck_spawnlocations WHERE mapname = '%s' AND zonegroup = %i AND stage = 1 AND teleside = %i;";
-
 // ck_vipadmins (should rename this table..)
 char sql_createVipAdmins[]							= "CREATE TABLE `ck_vipadmins` (`steamid` varchar(32) NOT NULL DEFAULT '', `title` varchar(128) DEFAULT '0', `namecolour` int(11) DEFAULT '0', `textcolour` int(11) NOT NULL DEFAULT '0', `joinmsg` varchar(255) DEFAULT 'none', `pbsound` varchar(256) NOT NULL DEFAULT 'none', `topsound` varchar(256) NOT NULL DEFAULT 'none', `wrsound` varchar(256) NOT NULL DEFAULT 'none', `inuse` int(11) DEFAULT '0', `vip` int(11) DEFAULT '0', `admin` int(11) NOT NULL DEFAULT '0', `zoner` int(11) NOT NULL DEFAULT '0', `active` int(11) NOT NULL DEFAULT '1', PRIMARY KEY (`steamid`), KEY `vip` (`steamid`,`vip`,`admin`,`zoner`)) DEFAULT CHARSET=utf8mb4;";
 
 // ck_wrcps
 char sql_createWrcps[]								= "CREATE TABLE IF NOT EXISTS `ck_wrcps` (`steamid` varchar(32) NOT NULL DEFAULT '', `name` varchar(64) DEFAULT NULL, `mapname` varchar(32) NOT NULL DEFAULT '', `runtimepro` decimal(12,6) NOT NULL DEFAULT '-1.000000', `velStartXY` smallint(6) NOT NULL DEFAULT 0, `velStartXYZ` smallint(6) NOT NULL DEFAULT 0, `velStartZ` smallint(6) NOT NULL DEFAULT 0, `stage` int(11) NOT NULL, `style` int(11) NOT NULL DEFAULT '0', PRIMARY KEY (`steamid`,`mapname`,`stage`,`style`), KEY `stagerank` (`mapname`,`runtimepro`,`stage`,`style`)) DEFAULT CHARSET=utf8mb4;";
 
-// ck_zones
-char sql_createZones[]								= "CREATE TABLE `ck_zones` (`mapname` varchar(54) NOT NULL, `zoneid` int(12) NOT NULL DEFAULT '-1', `zonetype` int(12) DEFAULT '-1', `zonetypeid` int(12) DEFAULT '-1', `pointa_x` float DEFAULT '-1', `pointa_y` float DEFAULT '-1', `pointa_z` float DEFAULT '-1', `pointb_x` float DEFAULT '-1', `pointb_y` float DEFAULT '-1', `pointb_z` float DEFAULT '-1', `vis` int(12) DEFAULT '0', `team` int(12) DEFAULT '0', `zonegroup` int(11) NOT NULL DEFAULT '0', `zonename` varchar(128) DEFAULT NULL, `hookname` varchar(128) DEFAULT 'None', `targetname` varchar(128) DEFAULT 'player', `onejumplimit` int(12) NOT NULL DEFAULT '1', `prespeed` int(64) NOT NULL DEFAULT '%.1f', PRIMARY KEY (`mapname`,`zoneid`)) DEFAULT CHARSET=utf8mb4;";
-char sql_insertZones[]								= "INSERT INTO ck_zones (mapname, zoneid, zonetype, zonetypeid, pointa_x, pointa_y, pointa_z, pointb_x, pointb_y, pointb_z, vis, team, zonegroup, zonename, hookname, targetname, onejumplimit, prespeed) VALUES ('%s', %i, %i, %i, '%f', '%f', '%f', '%f', '%f', '%f', %i, %i, %i,'%s','%s','%s',%i,%f)";
-char sql_updateZone[]								= "UPDATE ck_zones SET zonetype = %i, zonetypeid = %i, pointa_x = '%f', pointa_y ='%f', pointa_z = '%f', pointb_x = '%f', pointb_y = '%f', pointb_z = '%f', vis = %i, team = %i, onejumplimit = %i, prespeed = '%f', hookname = '%s', targetname = '%s', zonegroup = %i WHERE zoneid = %i AND mapname = '%s'";
-char sql_selectzoneTypeIds[]						= "SELECT zonetypeid FROM ck_zones WHERE mapname='%s' AND zonetype=%i AND zonegroup = %i;";
-char sql_selectMapZones[]							= "SELECT zoneid, zonetype, zonetypeid, pointa_x, pointa_y, pointa_z, pointb_x, pointb_y, pointb_z, vis, team, zonegroup, zonename, hookname, targetname, onejumplimit, prespeed FROM ck_zones WHERE mapname = '%s' ORDER BY zonetypeid ASC";
-char sql_selectTotalBonusCount[]					= "SELECT mapname, zoneid, zonetype, zonetypeid, pointa_x, pointa_y, pointa_z, pointb_x, pointb_y, pointb_z, vis, team, zonegroup, zonename FROM ck_zones WHERE zonetype = 3 GROUP BY mapname, zonegroup;";
-char sql_selectZoneIds[]							= "SELECT mapname, zoneid, zonetype, zonetypeid, pointa_x, pointa_y, pointa_z, pointb_x, pointb_y, pointb_z, vis, team, zonegroup, zonename, hookname, targetname, onejumplimit, prespeed FROM ck_zones WHERE mapname = '%s' ORDER BY zoneid ASC";
-char sql_selectBonusesInMap[]						= "SELECT mapname, zonegroup, zonename FROM `ck_zones` WHERE mapname LIKE '%c%s%c' AND zonegroup > 0 GROUP BY zonegroup;";
-char sql_deleteMapZones[]							= "DELETE FROM ck_zones WHERE mapname = '%s'";
-char sql_deleteZone[]								= "DELETE FROM ck_zones WHERE mapname = '%s' AND zoneid = %i";
-char sql_deleteZonesInGroup[]						= "DELETE FROM ck_zones WHERE mapname = '%s' AND zonegroup = %i";
-char sql_setZoneNames[]								= "UPDATE ck_zones SET zonename = '%s' WHERE mapname = '%s' AND zonegroup = %i;";
-
 // (?)
 char sql_MainEditQuery[]							= "SELECT steamid, name, %s FROM %s where mapname='%s' and style=%i %sORDER BY %s ASC LIMIT 50";
 char sql_MainDeleteQeury[]							= "DELETE From %s where mapname='%s' and style=%i and steamid='%s' %s";
-
-// ck_prinfo
-char sql_CreatePrinfo[]								= "CREATE TABLE IF NOT EXISTS ck_prinfo (steamid VARCHAR(32), name VARCHAR(64), mapname VARCHAR(32), runtime decimal(12,6) NOT NULL DEFAULT '-1.000000', zonegroup INT(12) NOT NULL DEFAULT '0', PRtimeinzone decimal(12,6) NOT NULL DEFAULT '-1.000000', PRcomplete FLOAT NOT NULL DEFAULT '0.0', PRattempts FLOAT NOT NULL DEFAULT '0.0', PRstcomplete FLOAT NOT NULL DEFAULT '0.0', PRIMARY KEY(steamid, mapname, zonegroup)) DEFAULT CHARSET=utf8mb4;";
-char sql_selectPR[]									= "SELECT steamid, name, mapname, zonegroup, PRtimeinzone, PRcomplete, PRattempts, PRstcomplete FROM ck_prinfo WHERE steamid = '%s' AND mapname = '%s' AND zonegroup= %i;";
-char sql_insertPR[]									= "INSERT INTO ck_prinfo (steamid, name, mapname, runtime, zonegroup, PRtimeinzone, PRcomplete, PRattempts, PRstcomplete) VALUES('%s', '%s', '%s', '%f', %i, '%f', '%f', '%f', '%f');";
-char sql_selectBonusPR[]							= "SELECT steamid, name, mapname, zonegroup, PRtimeinzone, PRcomplete, PRattempts, PRstcomplete FROM ck_prinfo WHERE steamid = '%s' AND mapname = '%s' AND zonegroup = %i;";
-char sql_updatePrinfo[]								= "UPDATE ck_prinfo SET PRtimeinzone = '%f', PRcomplete = '%f', PRattempts = '%f', PRstcomplete = '%f' WHERE steamid = '%s' AND mapname = '%s' AND zonegroup = %i;";
-char sql_updatePrinfo_withruntime[]					= "UPDATE ck_prinfo SET PRtimeinzone = '%f', PRcomplete = '%f', PRattempts = '%f', PRstcomplete = '%f', runtime = '%f' WHERE steamid = '%s' AND mapname = '%s' AND zonegroup = %i;";
-char sql_clearPRruntime[]							= "UPDATE ck_prinfo SET runtime = '0.0' WHERE steamid = '%s' AND mapname = '%s' AND zonegroup = %i;";
-
-// ck_replays
-char sql_createReplays[]							= "CREATE TABLE IF NOT EXISTS ck_replays (mapname VARCHAR(32), cp int(12) NOT NULL DEFAULT '0', frame int(12) NOT NULL DEFAULT '0', style INT(12) NOT NULL DEFAULT '0', PRIMARY KEY(mapname, cp, style)) DEFAULT CHARSET=utf8mb4;";
-char sql_selectReplayCPTicksAll[]					= "SELECT cp, frame, style FROM ck_replays WHERE mapname = '%s' AND style = %i ORDER BY cp ASC;";
-char sql_insertReplayCPTicks[]						= "INSERT INTO ck_replays (mapname, cp, frame, style) VALUES ('%s', %i, %i, %i)";
-char sql_updateReplayCPTicks[]						= "UPDATE ck_replays SET frame=%i WHERE mapname='%s' AND cp =%i AND style=%i;";
 
 // check tables data type
 char sql_checkDataType[]							= "SELECT DATA_TYPE, NUMERIC_PRECISION, NUMERIC_SCALE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%s' AND COLUMN_NAME='%s' HAVING DATA_TYPE = 'decimal' AND NUMERIC_PRECISION = 12 AND NUMERIC_SCALE = 6;";

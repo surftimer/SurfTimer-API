@@ -4359,7 +4359,8 @@ public void db_viewBonusPRinfo(int client, char szSteamID[32], char szMapName[32
 		return;
 
 	for(int zonegroup = 1; zonegroup < g_mapZoneGroupCount; zonegroup++){
-		Format(szQuery, sizeof(szQuery), sql_selectBonusPR, szSteamID, szMapName, zonegroup);
+		// Format(szQuery, sizeof(szQuery), sql_selectBonusPR, szSteamID, szMapName, zonegroup);
+		Format(szQuery, sizeof(szQuery), sql_selectPR, szSteamID, szMapName, zonegroup);
 		//PrintToConsole(client,szQuery);
 
 		Handle pack = CreateDataPack();
@@ -5839,127 +5840,6 @@ public void SQL_selectzoneTypeIdsCallback(Handle owner, Handle hndl, const char[
 		TypeMenu.Display(data, MENU_TIME_FOREVER);
 	}
 }
-/*
-public checkZoneTypeIds()
-{
-InitZoneVariables();
-
-char szQuery[258];
-Format(szQuery, 258, "SELECT `zonegroup` ,`zonetype`, `zonetypeid` FROM `ck_zones` WHERE `mapname` = '%s';", g_szMapName);
-SQL_TQuery(g_hDb, checkZoneTypeIdsCallback, szQuery, 1, DBPrio_High);
-}
-
-public checkZoneTypeIdsCallback(Handle owner, Handle hndl, const char[] error, any:data)
-{
-if (hndl == null)
-{
-LogError("[SurfTimer] SQL Error (checkZoneTypeIds): %s", error);
-return;
-}
-if (SQL_HasResultSet(hndl))
-{
-int idChecker[MAXZONEGROUPS][ZONEAMOUNT][MAXZONES], idCount[MAXZONEGROUPS][ZONEAMOUNT];
-char szQuery[258];
-// Fill array with id's
-// idChecker = map zones in
-while (SQL_FetchRow(hndl))
-{
-idChecker[SQL_FetchInt(hndl, 0)][SQL_FetchInt(hndl, 1)][SQL_FetchInt(hndl, 2)] = 1;
-idCount[SQL_FetchInt(hndl, 0)][SQL_FetchInt(hndl, 1)]++;
-}
-for (int i = 0; i < MAXZONEGROUPS; i++)
-{
-for (int j = 0; j < ZONEAMOUNT; j++)
-{
-for (int k = 0; k < idCount[i][j]; k++)
-{
-if (idChecker[i][j][k] == 1)
-continue;
-else
-{
-PrintToServer("[SurfTimer] Error on zonetype: %i, zonetypeid: %i", i, idChecker[i][k]);
-Format(szQuery, 258, "UPDATE `ck_zones` SET zonetypeid = zonetypeid-1 WHERE mapname = '%s' AND zonetype = %i AND zonetypeid > %i AND zonegroup = %i;", g_szMapName, j, k, i);
-SQL_LockDatabase(g_hDb);
-SQL_FastQuery(g_hDb, szQuery);
-SQL_UnlockDatabase(g_hDb);
-}
-}
-}
-}
-
-Format(szQuery, 258, "SELECT `zoneid` FROM `ck_zones` WHERE mapname = '%s' ORDER BY zoneid ASC;", g_szMapName);
-SQL_TQuery(g_hDb, checkZoneIdsCallback, szQuery, 1, DBPrio_High);
-}
-}
-
-public checkZoneIdsCallback(Handle owner, Handle hndl, const char[] error, any:data)
-{
-if (hndl == null)
-{
-LogError("[SurfTimer] SQL Error (checkZoneIdsCallback): %s", error);
-return;
-}
-
-if (SQL_HasResultSet(hndl))
-{
-int i = 0;
-char szQuery[258];
-while (SQL_FetchRow(hndl))
-{
-if (SQL_FetchInt(hndl, 0) == i)
-{
-i++;
-continue;
-}
-else
-{
-PrintToServer("[SurfTimer] Found an error in ZoneID's. Fixing...");
-Format(szQuery, 258, "UPDATE `ck_zones` SET zoneid = %i WHERE mapname = '%s' AND zoneid = %i", i, g_szMapName, SQL_FetchInt(hndl, 0));
-SQL_LockDatabase(g_hDb);
-SQL_FastQuery(g_hDb, szQuery);
-SQL_UnlockDatabase(g_hDb);
-i++;
-}
-}
-
-char szQuery2[258];
-Format(szQuery2, 258, "SELECT `zonegroup` FROM `ck_zones` WHERE `mapname` = '%s' ORDER BY `zonegroup` ASC;", g_szMapName);
-SQL_TQuery(g_hDb, checkZoneGroupIds, szQuery2, 1, DBPrio_Low);
-}
-}
-
-public checkZoneGroupIds(Handle owner, Handle hndl, const char[] error, any:data)
-{
-if (hndl == null)
-{
-LogError("[SurfTimer] SQL Error (checkZoneGroupIds): %s", error);
-return;
-}
-
-if (SQL_HasResultSet(hndl))
-{
-int i = 0;
-char szQuery[258];
-while (SQL_FetchRow(hndl))
-{
-if (SQL_FetchInt(hndl, 0) == i)
-continue;
-else if (SQL_FetchInt(hndl, 0) == (i+1))
-i++;
-else
-{
-i++;
-PrintToServer("[SurfTimer] Found an error in zoneGroupID's. Fixing...");
-Format(szQuery, 258, "UPDATE `ck_zones` SET `zonegroup` = %i WHERE `mapname` = '%s' AND `zonegroup` = %i", i, g_szMapName, SQL_FetchInt(hndl, 0));
-SQL_LockDatabase(g_hDb);
-SQL_FastQuery(g_hDb, szQuery);
-SQL_UnlockDatabase(g_hDb);
-}
-}
-db_selectMapZones();
-}
-}
-*/
 
 public void db_selectMapZones()
 {
@@ -6994,18 +6874,6 @@ public Action PrintUnfinishedLine(Handle timer, any pack)
 
 	return Plugin_Continue;
 }
-
-/*
-void PrintUnfinishedLine(Handle pack)
-{
-ResetPack(pack);
-int client = ReadPackCell(pack);
-char teksti[1024];
-ReadPackString(pack, teksti, 1024);
-CloseHandle(pack);
-PrintToConsole(client, teksti);
-}
-*/
 
 public void sql_selectPlayerNameCallback(Handle owner, Handle hndl, const char[] error, any data)
 {
@@ -12069,7 +11937,7 @@ public void db_selectPRinfoUnknown(int client, int rank, int zonegroup, char szS
 
 	WritePackCell(pack, zonegroup);
 
-	Format(szQuery, 1024, "SELECT steamid, name, mapname, runtime, PRtimeinzone, PRcomplete, PRattempts, PRstcomplete FROM ck_prinfo WHERE mapname LIKE '%c%s%c' AND zonegroup = '%i' AND steamid = '%s';", PERCENT, g_szMapName, PERCENT, zonegroup, szSteamID);
+	Format(szQuery, sizeof(szQuery), sql_stray_PRinfoByName, PERCENT, g_szMapName, PERCENT, zonegroup, szSteamID);
 	//PrintToConsole(client, "QUERY %s", szQuery);
 	SQL_TQuery(g_hDb, db_selectPRinfoUnknownCallback, szQuery, pack, DBPrio_Low);
 }
@@ -12096,7 +11964,7 @@ public void db_selectPRinfoUnknownWithMap(int client, int rank, char szMapName[1
 
 	WritePackCell(pack, zonegroup);
 
-	Format(szQuery, 1024, "SELECT steamid, name, mapname, runtime, PRtimeinzone, PRcomplete, PRattempts, PRstcomplete FROM ck_prinfo WHERE mapname = '%s' AND zonegroup = '%i' AND steamid = '%s';", szMapName, zonegroup, szSteamID);
+	Format(szQuery, sizeof(szQuery), sql_stray_PRinfoByName, PERCENT, szMapName, PERCENT, zonegroup, szSteamID);
 	//PrintToConsole(client, "QUERY %s", szQuery);
 	SQL_TQuery(g_hDb, db_selectPRinfoUnknownCallback, szQuery, pack, DBPrio_Low);
 }

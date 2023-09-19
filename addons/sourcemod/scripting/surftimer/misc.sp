@@ -750,7 +750,7 @@ public void checkSpawnPoints()
 	{
 		// Check if spawn point has been added to the database with !addspawn
 		char szQuery[256];
-		Format(szQuery, 256, "SELECT pos_x, pos_y, pos_z, ang_x, ang_y, ang_z FROM ck_spawnlocations WHERE mapname = '%s' AND zonegroup = 0;", g_szMapName);
+		Format(szQuery, sizeof(szQuery), sql_stray_getSpawnPoints, g_szMapName);
 		Handle query = SQL_Query(g_hDb, szQuery); // TODO: Threaded Query?
 		if (query == INVALID_HANDLE)
 		{
