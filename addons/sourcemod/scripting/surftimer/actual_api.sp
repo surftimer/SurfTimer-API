@@ -4343,6 +4343,64 @@ public void apiCheckSpawnpointsCallback(HTTPResponse response, DataPack data)
 	LogQueryTime("====== [Surf API] : Finished %s in: %f", func, GetGameTime() - fTime);
 }
 
+/* ck_replays */
+public void apiSelectReplayCheckpointTicksCallback(HTTPResponse response, DataPack data)
+{
+	char func[128];
+	data.ReadString(func, sizeof(func));
+	float fTime	 = data.ReadFloat();
+	int	  iStyle = data.ReadCell();
+	delete data;
+
+	LogQueryTime("[Surf API] : Finished SQL_selectReplayCPTicksCallback for %s in: %f", g_EditStyles[iStyle], GetGameTime() - fTime);
+
+	if (response.Status == HTTPStatus_NoContent)
+	{
+		for (int i = 0; i < MAX_STYLES; i++)
+			for (int j = 0; j < CPLIMIT; j++)
+				g_iCPStartFrame[i][j] = 0;
+
+		LogQueryTime("[Surf API] No entries found (%s)", func);
+		return;
+	}
+	else if (response.Status != HTTPStatus_OK)
+	{
+		if (!g_bServerDataLoaded)
+			loadAllClientSettings();
+
+		LogError("[Surf API] API Error %i (%s)", response.Status, func);
+		return;
+	}
+
+	JSONArray jsonArray = view_as<JSONArray>(response.Data);
+	for (int i = 0; i < jsonArray.Length; i++)
+	{
+		JSONObject jsonObject		   = view_as<JSONObject>(jsonArray.Get(i));
+		int		   cp				   = jsonObject.GetInt("cp");
+		int		   frame			   = jsonObject.GetInt("frame");
+		int		   style			   = jsonObject.GetInt("style");
+
+		g_iCPStartFrame[style][cp - 1] = frame;
+
+		if (!g_bReplayTickFound[style] && g_iCPStartFrame[style][cp - 1] > 0)
+			g_bReplayTickFound[style] = true;
+
+		delete jsonObject;
+	}
+	delete jsonArray;
+
+	if (!g_bServerDataLoaded)
+	{
+		g_fServerLoading[1] = GetGameTime();
+		g_bHasLatestID = true;
+		float time = g_fServerLoading[1] - g_fServerLoading[0];
+		LogQueryTime("====== [Surf API] : Finished loading server settings in: %f", time);
+		loadAllClientSettings();
+	}
+
+	LogQueryTime("====== [Surf API] : Finished %s in: %f", func, GetGameTime() - fTime);
+}
+
 /* Player Points Calculation */
 public void apiCalculatePlayerPointsCallback(HTTPResponse response, DataPack data)
 {

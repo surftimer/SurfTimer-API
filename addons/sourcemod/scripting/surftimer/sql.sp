@@ -3985,18 +3985,42 @@ public void SQL_LoadStageAttemptsCallback(Handle owner, Handle hndl, const char[
 	}
 }
 
-public void db_viewReplayCPTicks(char szMapName[128])
+public void db_viewReplayCPTicks(char szMapName[128]) // API'd up
 {
-	char szQuery[1024];
-
 	for(int style = 0; style < MAX_STYLES; style++){
 		g_bReplayTickFound[style] = false;
 
-		Format(szQuery, sizeof(szQuery), sql_selectReplayCPTicksAll, szMapName, style);
-		DataPack pack = new DataPack()
-		pack.WriteCell(style);
-		pack.WriteFloat(GetGameTime());
-		SQL_TQuery(g_hDb, SQL_selectReplayCPTicksCallback, szQuery, pack, DBPrio_Low);
+		if (GetConVarBool(g_hSurfApiEnabled))
+		{
+			char apiRoute[512];
+			FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/selectReplayCPTicksAll?mapname=%s&style=%i", g_szApiHost, szMapName, style);
+
+			DataPack dp = new DataPack();
+			dp.WriteString("db_viewReplayCPTicks");
+			dp.WriteFloat(GetGameTime());
+			dp.WriteCell(style);
+
+			dp.Reset();
+
+			if (g_bApiDebug)
+			{
+				PrintToServer("API ROUTE: %s", apiRoute);
+			}
+
+			/* RipExt */
+			HTTPRequest request = new HTTPRequest(apiRoute);
+			request.Get(apiSelectReplayCheckpointTicksCallback, dp);
+		}
+		else
+		{
+			char szQuery[1024];
+
+			Format(szQuery, sizeof(szQuery), sql_selectReplayCPTicksAll, szMapName, style);
+			DataPack pack = new DataPack()
+			pack.WriteCell(style);
+			pack.WriteFloat(GetGameTime());
+			SQL_TQuery(g_hDb, SQL_selectReplayCPTicksCallback, szQuery, pack, DBPrio_Low);
+		}
 	}
 }
 

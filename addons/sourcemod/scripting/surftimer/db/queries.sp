@@ -99,6 +99,9 @@ char sql_stray_selectPlayerRankUnknown[]			= "SELECT steamid, name, points FROM 
 // ck_playertimes
 char sql_stray_steamIdFromMapRank[]					= "SELECT steamid FROM ck_playertimes WHERE mapname = '%s' AND style = 0 AND runtimepro > -1.0 ORDER BY runtimepro ASC LIMIT %i, 1;";	 // paired with sql_stray_getRankSteamIdBonus[]
 
+// ck_replays
+char sql_selectReplayCPTicksAll[]					= "SELECT cp, frame, style FROM ck_replays WHERE mapname = '%s' AND style = %i ORDER BY cp ASC;";
+
 // ck_spawnlocations
 char sql_insertSpawnLocations[]						= "INSERT INTO ck_spawnlocations (mapname, pos_x, pos_y, pos_z, ang_x, ang_y, ang_z, vel_x, vel_y, vel_z, zonegroup, teleside) VALUES ('%s', '%f', '%f', '%f', '%f', '%f', '%f', '%f', '%f', '%f', %i, %i);";
 char sql_updateSpawnLocations[]						= "UPDATE ck_spawnlocations SET pos_x = '%f', pos_y = '%f', pos_z = '%f', ang_x = '%f', ang_y = '%f', ang_z = '%f', vel_x = '%f', vel_y = '%f', vel_z = '%f' WHERE mapname = '%s' AND zonegroup = %i AND teleside = %i;";
@@ -163,13 +166,12 @@ char sql_updatePrinfo_withruntime[]					= "UPDATE ck_prinfo SET PRtimeinzone = '
 char sql_clearPRruntime[]							= "UPDATE ck_prinfo SET runtime = '0.0' WHERE steamid = '%s' AND mapname = '%s' AND zonegroup = %i;";
 char sql_stray_PRinfoByName[]						= "SELECT steamid, name, mapname, runtime, PRtimeinzone, PRcomplete, PRattempts, PRstcomplete FROM ck_prinfo WHERE mapname LIKE '%c%s%c' AND zonegroup = '%i' AND steamid = '%s';";
 // char sql_selectBonusPR[]							= "SELECT steamid, name, mapname, zonegroup, PRtimeinzone, PRcomplete, PRattempts, PRstcomplete FROM ck_prinfo WHERE steamid = '%s' AND mapname = '%s' AND zonegroup = %i;";	    // merged with sql_selectPR
-// char sql_stray_PRinfoUnknownWithMap[]				= "SELECT steamid, name, mapname, runtime, PRtimeinzone, PRcomplete, PRattempts, PRstcomplete FROM ck_prinfo WHERE mapname = '%s' AND zonegroup = '%i' AND steamid = '%s';";	// merged with sql_stray_PRinfoByName
+// char sql_stray_PRinfoUnknownWithMap[]			= "SELECT steamid, name, mapname, runtime, PRtimeinzone, PRcomplete, PRattempts, PRstcomplete FROM ck_prinfo WHERE mapname = '%s' AND zonegroup = '%i' AND steamid = '%s';";	    // merged with sql_stray_PRinfoByName
 
 // ck_replays
 char sql_createReplays[]							= "CREATE TABLE IF NOT EXISTS ck_replays (mapname VARCHAR(32), cp int(12) NOT NULL DEFAULT '0', frame int(12) NOT NULL DEFAULT '0', style INT(12) NOT NULL DEFAULT '0', PRIMARY KEY(mapname, cp, style)) DEFAULT CHARSET=utf8mb4;";
-char sql_selectReplayCPTicksAll[]					= "SELECT cp, frame, style FROM ck_replays WHERE mapname = '%s' AND style = %i ORDER BY cp ASC;";
-char sql_insertReplayCPTicks[]						= "INSERT INTO ck_replays (mapname, cp, frame, style) VALUES ('%s', %i, %i, %i)";
-char sql_updateReplayCPTicks[]						= "UPDATE ck_replays SET frame=%i WHERE mapname='%s' AND cp =%i AND style=%i;";
+char sql_insertReplayCPTicks[]						= "INSERT INTO ck_replays (mapname, cp, frame, style) VALUES ('%s', %i, %i, %i)";	 // transaction
+char sql_updateReplayCPTicks[]						= "UPDATE ck_replays SET frame=%i WHERE mapname='%s' AND cp =%i AND style=%i;";		 // transaction
 
 // ck_playertemp - function not working properly - lower priority
 char sql_createPlayertmp[]							= "CREATE TABLE IF NOT EXISTS ck_playertemp (steamid VARCHAR(32), mapname VARCHAR(32), cords1 FLOAT NOT NULL DEFAULT '-1.0', cords2 FLOAT NOT NULL DEFAULT '-1.0', cords3 FLOAT NOT NULL DEFAULT '-1.0', angle1 FLOAT NOT NULL DEFAULT '-1.0',angle2 FLOAT NOT NULL DEFAULT '-1.0',angle3 FLOAT NOT NULL DEFAULT '-1.0', EncTickrate INT(12) DEFAULT '-1.0', runtimeTmp decimal(12,6) NOT NULL DEFAULT '-1.000000', Stage INT, zonegroup INT NOT NULL DEFAULT 0, PRIMARY KEY(steamid,mapname)) DEFAULT CHARSET=utf8mb4;";
