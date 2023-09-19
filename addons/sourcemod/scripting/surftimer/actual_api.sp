@@ -241,9 +241,6 @@ public void apiPutCallback(HTTPResponse response, DataPack data)
 			CreateTimer(1.0, SetClanTag, client, TIMER_FLAG_NO_MAPCHANGE);
 		}
 	}
-	else if (StrEqual(func, "db_updateStat"))
-	{
-	}
 
 	LogQueryTime("====== [Surf API] : Finished %s in: %.4f", func, GetGameTime() - fTime);
 	delete data;
