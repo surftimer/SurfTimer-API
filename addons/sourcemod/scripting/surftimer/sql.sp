@@ -1934,7 +1934,7 @@ public void db_viewPlayerProfile(int client, int style, char szSteamId[32], bool
 	}
 	else
 	{
-		if (GetConVarBool(g_hSurfApiEnabled)) // This is wrong, no steamid by name endpoint in API yet
+		if (GetConVarBool(g_hSurfApiEnabled))
 		{
 			char apiRoute[512];
 				
@@ -1947,7 +1947,7 @@ public void db_viewPlayerProfile(int client, int style, char szSteamId[32], bool
 			dp.WriteString(szName);
 			dp.Reset();
 
-			FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/playerRankByName?style=%i&name=%s", g_szApiHost, style, szName);
+			FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/selectPlayerRankByName?style=%i&name=%s", g_szApiHost, style, szName);
 			if (g_bApiDebug)
 			{
 				PrintToServer("API ROUTE: %s", apiRoute);
@@ -10096,23 +10096,47 @@ public void db_selectMapRecordTimeCallback(Handle owner, Handle hndl, const char
 	}
 }
 
-public void db_selectPlayerRank(int client, int rank, char szSteamId[32])
+public void db_selectPlayerRank(int client, int rank, char szSteamId[32]) // API'd up
 {
-	char szQuery[1024];
+	char szQuery[1024], apiRoute[512];
 
 	if (StrContains(szSteamId, "none", false)!= -1 && rank > 0) // Select Rank Number
 	{
 		g_rankArg[client] = rank;
 		rank -= 1;
 		Format(szQuery, sizeof(szQuery), sql_stray_rankCommand, rank);
+		
+		FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/rankCommand?limit=%i", g_szApiHost, rank);
 	}
 	else if (rank == 0) // Self Rank Cmd
 	{
 		g_rankArg[client] = -1;
 		Format(szQuery, sizeof(szQuery), sql_stray_rankCommandSelf, szSteamId);
-	}
 
-	SQL_TQuery(g_hDb, db_selectPlayerRankCallback, szQuery, client, DBPrio_Low);
+		FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/rankCommandSelf?steamid32=%s", g_szApiHost, szSteamId);
+	}
+	
+	if (GetConVarBool(g_hSurfApiEnabled))
+	{
+		DataPack dp = new DataPack();
+		dp.WriteString("db_selectPlayerRank");
+		dp.WriteFloat(GetGameTime());
+		dp.WriteCell(client);
+		dp.Reset();
+
+		if (g_bApiDebug)
+		{
+			PrintToServer("API ROUTE: %s", apiRoute);
+		}
+
+		/* RipExt - GET */
+		HTTPRequest request = new HTTPRequest(apiRoute);
+		request.Get(apiPlayerRankCommandCallback, dp);
+	}
+	else
+	{
+		SQL_TQuery(g_hDb, db_selectPlayerRankCallback, szQuery, client, DBPrio_Low);
+	}
 }
 
 public void db_selectPlayerRankCallback(Handle owner, Handle hndl, const char[] error, any client)
@@ -12611,19 +12635,47 @@ public void db_SelectCountryRankCallback(Handle owner, Handle hndl, const char[]
 	}
 }
 
-public void db_GetPlayerPoints(int client, int CountryPlayerTotal, char szPlayerName[MAX_NAME_LENGTH], char szCountry[100], int style)
+public void db_GetPlayerPoints(int client, int CountryPlayerTotal, char szPlayerName[MAX_NAME_LENGTH], char szCountry[100], int style) // API'd up
 {	
-	Handle pack = CreateDataPack();
-	WritePackCell(pack, client);
-	WritePackCell(pack, CountryPlayerTotal);
-	WritePackString(pack, szPlayerName);
-	WritePackString(pack, szCountry);
-	WritePackCell(pack, style);
+	if (GetConVarBool(g_hSurfApiEnabled))
+	{
+		char apiRoute[512];
+		FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/getPlayerPointsByName?name=%s&style=%i", g_szApiHost, szPlayerName, style);
 
-	//GET PLAYER POINTS
-	char szQuery[512];
-	Format(szQuery, sizeof(szQuery), sql_stray_getPlayerPointsByName, szPlayerName, style);
-	SQL_TQuery(g_hDb, db_GetPlayerPointsCallback, szQuery, pack, DBPrio_Low);
+		DataPack dp = new DataPack();
+		dp.WriteString("db_GetPlayerPoints");
+		dp.WriteFloat(GetGameTime());
+		dp.WriteCell(client);
+		dp.WriteCell(CountryPlayerTotal);
+		dp.WriteString(szPlayerName);
+		dp.WriteString(szCountry);
+		dp.WriteCell(style);
+
+		dp.Reset();
+
+		if (g_bApiDebug)
+		{
+			PrintToServer("API ROUTE: %s", apiRoute);
+		}
+
+		/* RipExt */
+		HTTPRequest request = new HTTPRequest(apiRoute);
+		request.Get(apiSelectPlayerPointsByNameCallback, dp);
+	}
+	else
+	{
+		Handle pack = CreateDataPack();
+		WritePackCell(pack, client);
+		WritePackCell(pack, CountryPlayerTotal);
+		WritePackString(pack, szPlayerName);
+		WritePackString(pack, szCountry);
+		WritePackCell(pack, style);
+
+		//GET PLAYER POINTS
+		char szQuery[512];
+		Format(szQuery, sizeof(szQuery), sql_stray_getPlayerPointsByName, szPlayerName, style);
+		SQL_TQuery(g_hDb, db_GetPlayerPointsCallback, szQuery, pack, DBPrio_Low);
+	}
 }
 
 public void db_GetPlayerPointsCallback(Handle owner, Handle hndl, const char[] error, any pack)
@@ -12653,19 +12705,47 @@ public void db_GetPlayerPointsCallback(Handle owner, Handle hndl, const char[] e
 	}
 }
 
-public void db_GetPlayerCountryRank(int PlayerPoints, int CountryPlayerTotal, char szPlayerName[MAX_NAME_LENGTH], char szCountry[100], int style)
+public void db_GetPlayerCountryRank(int PlayerPoints, int CountryPlayerTotal, char szPlayerName[MAX_NAME_LENGTH], char szCountry[100], int style) // API'd up
 {	
-	Handle pack = CreateDataPack();
-	WritePackCell(pack, PlayerPoints);
-	WritePackCell(pack, CountryPlayerTotal);
-	WritePackString(pack, szPlayerName);
-	WritePackString(pack, szCountry);
-	WritePackCell(pack, style);
+	if (GetConVarBool(g_hSurfApiEnabled))
+	{
+		char apiRoute[512];
+		FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/getPlayerCountryRank?country=%s&style=%i&points=%i", g_szApiHost, szCountry, style, PlayerPoints);
 
-	//GET CLIENT COUNTRY RANK
-	char szQuery[512];
-	Format(szQuery, sizeof szQuery, sql_stray_getPlayerCountryRank, szCountry, style, PlayerPoints);
-	SQL_TQuery(g_hDb, db_GetPlayerCountryRankCallback, szQuery, pack, DBPrio_Low);
+		DataPack dp = new DataPack();
+		dp.WriteString("db_GetPlayerCountryRank");
+		dp.WriteFloat(GetGameTime());
+		dp.WriteCell(PlayerPoints);
+		dp.WriteCell(CountryPlayerTotal);
+		dp.WriteString(szPlayerName);
+		dp.WriteString(szCountry);
+		dp.WriteCell(style);
+
+		dp.Reset();
+
+		if (g_bApiDebug)
+		{
+			PrintToServer("API ROUTE: %s", apiRoute);
+		}
+
+		/* RipExt */
+		HTTPRequest request = new HTTPRequest(apiRoute);
+		request.Get(apiSelectPlayerCountryRankCallback, dp);
+	}
+	else
+	{
+		Handle pack = CreateDataPack();
+		WritePackCell(pack, PlayerPoints);
+		WritePackCell(pack, CountryPlayerTotal);
+		WritePackString(pack, szPlayerName);
+		WritePackString(pack, szCountry);
+		WritePackCell(pack, style);
+
+		//GET CLIENT COUNTRY RANK
+		char szQuery[512];
+		Format(szQuery, sizeof szQuery, sql_stray_getPlayerCountryRank, szCountry, style, PlayerPoints);
+		SQL_TQuery(g_hDb, db_GetPlayerCountryRankCallback, szQuery, pack, DBPrio_Low);
+	}
 }
 
 public void db_GetPlayerCountryRankCallback(Handle owner, Handle hndl, const char[] error, any pack)
@@ -12695,21 +12775,47 @@ public void db_GetPlayerCountryRankCallback(Handle owner, Handle hndl, const cha
 //sm_crank <playername>
 //sm_crank <playername> <style>
 //sm_crank <style> <playername>
-public void db_SelectCustomPlayerCountryRank(int client, char szPlayerName[MAX_NAME_LENGTH], int style)
+public void db_SelectCustomPlayerCountryRank(int client, char szPlayerName[MAX_NAME_LENGTH], int style) // API'd up
 {
 	// Escape name for SQL injection protection
 	char szName[MAX_NAME_LENGTH * 2 + 1];
 	SQL_EscapeString(g_hDb, szPlayerName, szName, MAX_NAME_LENGTH);
 
-	Handle pack = CreateDataPack();
-	WritePackCell(pack, client);
-	WritePackString(pack, szName);
-	WritePackCell(pack, style);
+	if (GetConVarBool(g_hSurfApiEnabled))
+	{
+		char apiRoute[512];
+		FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/continentPlayerRankByName?name=%s", g_szApiHost, szName);
 
-	//CHECK IF PLAYER EXISTS
-	char szQuery[512];
-	Format(szQuery, sizeof szQuery, sql_stray_continentPlayerRankByName, szName);
-	SQL_TQuery(g_hDb, db_SelectCustomPlayerCountryRankCallback, szQuery, pack, DBPrio_Low);
+		DataPack dp = new DataPack();
+		dp.WriteString("db_SelectCustomPlayerCountryRank");
+		dp.WriteFloat(GetGameTime());
+		dp.WriteCell(client);
+		dp.WriteString(szName);
+		dp.WriteCell(style);
+
+		dp.Reset();
+
+		if (g_bApiDebug)
+		{
+			PrintToServer("API ROUTE: %s", apiRoute);
+		}
+
+		/* RipExt */
+		HTTPRequest request = new HTTPRequest(apiRoute);
+		request.Get(apiSelectPlayerCountryRankCallback, dp);
+	}
+	else
+	{
+		Handle pack = CreateDataPack();
+		WritePackCell(pack, client);
+		WritePackString(pack, szName);
+		WritePackCell(pack, style);
+
+		//CHECK IF PLAYER EXISTS
+		char szQuery[512];
+		Format(szQuery, sizeof szQuery, sql_stray_continentPlayerRankByName, szName);
+		SQL_TQuery(g_hDb, db_SelectCustomPlayerCountryRankCallback, szQuery, pack, DBPrio_Low);
+	}
 }
 
 public void db_SelectCustomPlayerCountryRankCallback(Handle owner, Handle hndl, const char[] error, any pack)
@@ -12736,21 +12842,47 @@ public void db_SelectCustomPlayerCountryRankCallback(Handle owner, Handle hndl, 
 	}
 }
 
-public void db_SelectCustomPlayerCountryRank_GetCountry(int client, char szPlayerName[MAX_NAME_LENGTH], int style)
+public void db_SelectCustomPlayerCountryRank_GetCountry(int client, char szPlayerName[MAX_NAME_LENGTH], int style) // API'd up
 {
 	// Escape name for SQL injection protection
 	char szName[MAX_NAME_LENGTH * 2 + 1];
 	SQL_EscapeString(g_hDb, szPlayerName, szName, MAX_NAME_LENGTH);
 
-	Handle pack = CreateDataPack();
-	WritePackCell(pack, client);
-	WritePackString(pack, szName);
-	WritePackCell(pack, style);
+	if (GetConVarBool(g_hSurfApiEnabled))
+	{
+		char apiRoute[512];
+		FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/getPlayerCountryByName?name=%s&style=%i", g_szApiHost, szName, style);
 
-	//GET SELECT PLAYER COUNTRY
-	char szQuery[512];
-	Format(szQuery, sizeof szQuery, sql_stray_countryRankPlayerCountryRankByName, szName, style);
-	SQL_TQuery(g_hDb, db_SelectCustomPlayerCountryRank_GetCountryCallback, szQuery, pack, DBPrio_Low);
+		DataPack dp = new DataPack();
+		dp.WriteString("db_SelectCustomPlayerCountryRank_GetCountry");
+		dp.WriteFloat(GetGameTime());
+		dp.WriteCell(client);
+		dp.WriteString(szName);
+		dp.WriteCell(style);
+
+		dp.Reset();
+
+		if (g_bApiDebug)
+		{
+			PrintToServer("API ROUTE: %s", apiRoute);
+		}
+
+		/* RipExt */
+		HTTPRequest request = new HTTPRequest(apiRoute);
+		request.Get(apiSelectPlayerCountryByNameCallback, dp);
+	}
+	else
+	{
+		Handle pack = CreateDataPack();
+		WritePackCell(pack, client);
+		WritePackString(pack, szName);
+		WritePackCell(pack, style);
+
+		//GET SELECT PLAYER COUNTRY
+		char szQuery[512];
+		Format(szQuery, sizeof szQuery, sql_stray_countryRankPlayerCountryRankByName, szName, style);
+		SQL_TQuery(g_hDb, db_SelectCustomPlayerCountryRank_GetCountryCallback, szQuery, pack, DBPrio_Low);
+	}
 }
 
 public void db_SelectCustomPlayerCountryRank_GetCountryCallback(Handle owner, Handle hndl, const char[] error, any pack)
@@ -12781,21 +12913,49 @@ public void db_SelectCustomPlayerCountryRank_GetCountryCallback(Handle owner, Ha
 }
 
 //sm_ctop
-public void db_SelectCountryTOP(int client, char szCountryName[256], int style)
+public void db_SelectCountryTOP(int client, char szCountryName[256], int style) // API'd up
 {
 	if (!IsValidClient(client))
+	{
 		return;
+	}
 
 	g_iCountryTopStyleSelected[client] = style;
 
-	Handle pack = CreateDataPack();
-	WritePackCell(pack, client);
-	WritePackString(pack, szCountryName);
-	WritePackCell(pack, style);
+	if (GetConVarBool(g_hSurfApiEnabled))
+	{
+		char apiRoute[512];
+		FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/countryTop?country=%s&style=%i", g_szApiHost, szCountryName, style);
 
-	char szQuery[512];
-	Format(szQuery, sizeof szQuery, sql_stray_countryTop, szCountryName, style);
-	SQL_TQuery(g_hDb, db_SelectCountryTOPCallback, szQuery, pack, DBPrio_Low);
+		DataPack dp = new DataPack();
+		dp.WriteString("db_SelectCountryTOP");
+		dp.WriteFloat(GetGameTime());
+		dp.WriteCell(client);
+		dp.WriteString(szCountryName);
+		dp.WriteCell(style);
+
+		dp.Reset();
+
+		if (g_bApiDebug)
+		{
+			PrintToServer("API ROUTE: %s", apiRoute);
+		}
+
+		/* RipExt */
+		HTTPRequest request = new HTTPRequest(apiRoute);
+		request.Get(apiSelectCountryTopCallback, dp);
+	}
+	else
+	{
+		Handle pack = CreateDataPack();
+		WritePackCell(pack, client);
+		WritePackString(pack, szCountryName);
+		WritePackCell(pack, style);
+
+		char szQuery[512];
+		Format(szQuery, sizeof szQuery, sql_stray_countryTop, szCountryName, style);
+		SQL_TQuery(g_hDb, db_SelectCountryTOPCallback, szQuery, pack, DBPrio_Low);
+	}
 }
 
 public void db_SelectCountryTOPCallback(Handle owner, Handle hndl, const char[] error, any pack)
@@ -12894,20 +13054,47 @@ public int CountryTopMenu(Menu menu, MenuAction action, int param1, int param2)
 	return 0;
 }
 
-public void db_GetCountriesNames(int client, int style)
+public void db_GetCountriesNames(int client, int style) // API'd up
 {
 	if (!IsValidClient(client))
+	{
 		return;
-
+	}
+	
 	g_iCountryTopStyleSelected[client] = style;
 
-	Handle pack = CreateDataPack();
-	WritePackCell(pack, client);
-	WritePackCell(pack, style);
+	if (GetConVarBool(g_hSurfApiEnabled))
+	{
+		char apiRoute[512];
+		FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/countryTopAllCountries?style=%i", g_szApiHost, style);
 
-	char szQuery[512];
-	Format(szQuery, sizeof szQuery, sql_stray_countryTopAllCountries, style);
-	SQL_TQuery(g_hDb, db_GetCountriesNamesCallback, szQuery, pack, DBPrio_Low);
+		DataPack dp = new DataPack();
+		dp.WriteString("db_GetCountriesNames");
+		dp.WriteFloat(GetGameTime());
+		dp.WriteCell(client);
+		dp.WriteCell(style);
+
+		dp.Reset();
+
+		if (g_bApiDebug)
+		{
+			PrintToServer("API ROUTE: %s", apiRoute);
+		}
+
+		/* RipExt */
+		HTTPRequest request = new HTTPRequest(apiRoute);
+		request.Get(apiSelectAllCountriesCallback, dp);
+	}
+	else
+	{
+		Handle pack = CreateDataPack();
+		WritePackCell(pack, client);
+		WritePackCell(pack, style);
+
+		char szQuery[512];
+		Format(szQuery, sizeof szQuery, sql_stray_countryTopAllCountries, style);
+		SQL_TQuery(g_hDb, db_GetCountriesNamesCallback, szQuery, pack, DBPrio_Low);
+	}
 }
 
 public void db_GetCountriesNamesCallback(Handle owner, Handle hndl, const char[] error, any pack)
@@ -12989,18 +13176,45 @@ public int CountriesMenu(Menu menu, MenuAction action, int param1, int param2)
 
 
 //sm_continentrank
-public void db_SelectContinentRank(int client, char szPlayerName[MAX_NAME_LENGTH], char szContinentCode[3], int style)
+public void db_SelectContinentRank(int client, char szPlayerName[MAX_NAME_LENGTH], char szContinentCode[3], int style) // API'd up
 {
-	Handle pack = CreateDataPack();
-	WritePackCell(pack, client);
-	WritePackString(pack, szPlayerName);
-	WritePackString(pack, szContinentCode);
-	WritePackCell(pack, style);
+	if (GetConVarBool(g_hSurfApiEnabled))
+	{
+		char apiRoute[512];
+		FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/specificContinentRank?continentCode=%s&style=%i", g_szApiHost, szContinentCode, style);
 
-	//GET TOTAL AMOUNT OF PLAYERS
-	char szQuery[512];
-	Format(szQuery, sizeof szQuery, sql_stray_specificContinentRank, szContinentCode, style);
-	SQL_TQuery(g_hDb, db_SelectContinentRankCallback, szQuery, pack, DBPrio_Low);
+		DataPack dp = new DataPack();
+		dp.WriteString("db_SelectContinentRank");
+		dp.WriteFloat(GetGameTime());
+		dp.WriteCell(client);
+		dp.WriteString(szPlayerName);
+		dp.WriteString(szContinentCode);
+		dp.WriteCell(style);
+
+		dp.Reset();
+
+		if (g_bApiDebug)
+		{
+			PrintToServer("API ROUTE: %s", apiRoute);
+		}
+
+		/* RipExt */
+		HTTPRequest request = new HTTPRequest(apiRoute);
+		request.Get(apiSelectContinentRankCallback, dp);
+	}
+	else
+	{
+		Handle pack = CreateDataPack();
+		WritePackCell(pack, client);
+		WritePackString(pack, szPlayerName);
+		WritePackString(pack, szContinentCode);
+		WritePackCell(pack, style);
+
+		//GET TOTAL AMOUNT OF PLAYERS
+		char szQuery[512];
+		Format(szQuery, sizeof(szQuery), sql_stray_specificContinentRank, szContinentCode, style);
+		SQL_TQuery(g_hDb, db_SelectContinentRankCallback, szQuery, pack, DBPrio_Low);
+	}
 }
 
 public void db_SelectContinentRankCallback(Handle owner, Handle hndl, const char[] error, any pack)
@@ -13030,22 +13244,50 @@ public void db_SelectContinentRankCallback(Handle owner, Handle hndl, const char
 	}
 }
 
-public void db_GetPlayerPointsContinent(int client, int ContinentPlayerTotal, char szPlayerName[MAX_NAME_LENGTH], char szContinentCode[3], int style)
+public void db_GetPlayerPointsContinent(int client, int ContinentPlayerTotal, char szPlayerName[MAX_NAME_LENGTH], char szContinentCode[3], int style) // API'd up
 {	
-	Handle pack = CreateDataPack();
-	WritePackCell(pack, client);
-	WritePackCell(pack, ContinentPlayerTotal);
-	WritePackString(pack, szPlayerName);
-	WritePackString(pack, szContinentCode);
-	WritePackCell(pack, style);
+	if (GetConVarBool(g_hSurfApiEnabled))
+	{
+		char apiRoute[512];
+		FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/getPlayerPointsByName?name=%s&style=%i", g_szApiHost, szPlayerName, style);
 
-	//GET PLAYER POINTS
-	char szQuery[512];
-	Format(szQuery, sizeof szQuery, sql_stray_continentPlayerPoints, szPlayerName, style);
-	SQL_TQuery(g_hDb, db_GetPlayerPointsContinentCallback, szQuery, pack, DBPrio_Low);
+		DataPack dp = new DataPack();
+		dp.WriteString("db_GetPlayerPointsContinent");
+		dp.WriteFloat(GetGameTime());
+		dp.WriteCell(client);
+		dp.WriteCell(ContinentPlayerTotal);
+		dp.WriteString(szPlayerName);
+		dp.WriteString(szContinentCode);
+		dp.WriteCell(style);
+
+		dp.Reset();
+
+		if (g_bApiDebug)
+		{
+			PrintToServer("API ROUTE: %s", apiRoute);
+		}
+
+		/* RipExt */
+		HTTPRequest request = new HTTPRequest(apiRoute);
+		request.Get(apiSelectPlayerPointsByNameCallback, dp);
+	}
+	else
+	{
+		Handle pack = CreateDataPack();
+		WritePackCell(pack, client);
+		WritePackCell(pack, ContinentPlayerTotal);
+		WritePackString(pack, szPlayerName);
+		WritePackString(pack, szContinentCode);
+		WritePackCell(pack, style);
+
+		//GET PLAYER POINTS
+		char szQuery[512];
+		Format(szQuery, sizeof szQuery, sql_stray_getPlayerPointsByName, szPlayerName, style);
+		SQL_TQuery(g_hDb, db_GetPlayerPointsContinentCallback, szQuery, pack, DBPrio_Low);
+	}
 }
 
-public void db_GetPlayerPointsContinentCallback(Handle owner, Handle hndl, const char[] error, any pack)
+public void db_GetPlayerPointsContinentCallback(Handle owner, Handle hndl, const char[] error, any pack) // API'd up
 {
 	if (hndl == null)
 	{
@@ -13072,19 +13314,47 @@ public void db_GetPlayerPointsContinentCallback(Handle owner, Handle hndl, const
 	}
 }
 
-public void db_GetPlayerContinentRank(int PlayerPoints, int ContinentPlayerTotal, char szPlayerName[MAX_NAME_LENGTH], char szContinentCode[3], int style)
+public void db_GetPlayerContinentRank(int PlayerPoints, int ContinentPlayerTotal, char szPlayerName[MAX_NAME_LENGTH], char szContinentCode[3], int style) // API'd up
 {	
-	Handle pack = CreateDataPack();
-	WritePackCell(pack, PlayerPoints);
-	WritePackCell(pack, ContinentPlayerTotal);
-	WritePackString(pack, szPlayerName);
-	WritePackString(pack, szContinentCode);
-	WritePackCell(pack, style);
+	if (GetConVarBool(g_hSurfApiEnabled))
+	{
+		char apiRoute[512];
+		FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/continentPlayerRank?continentCode=%s&style=%i&points=%i", g_szApiHost, szContinentCode, style, PlayerPoints);
 
-	//GET CLIENT CONTINENT RANK
-	char szQuery[512];
-	Format(szQuery, sizeof szQuery, sql_stray_continentPlayerRank, szContinentCode, style, PlayerPoints);
-	SQL_TQuery(g_hDb, db_GetPlayerContinentRankCallback, szQuery, pack, DBPrio_Low);
+		DataPack dp = new DataPack();
+		dp.WriteString("db_GetPlayerContinentRank");
+		dp.WriteFloat(GetGameTime());
+		dp.WriteCell(PlayerPoints);
+		dp.WriteCell(ContinentPlayerTotal);
+		dp.WriteString(szPlayerName);
+		dp.WriteString(szContinentCode);
+		dp.WriteCell(style);
+
+		dp.Reset();
+
+		if (g_bApiDebug)
+		{
+			PrintToServer("API ROUTE: %s", apiRoute);
+		}
+
+		/* RipExt */
+		HTTPRequest request = new HTTPRequest(apiRoute);
+		request.Get(apiSelectContinentPlayerRankCallback, dp);
+	}
+	else
+	{
+		Handle pack = CreateDataPack();
+		WritePackCell(pack, PlayerPoints);
+		WritePackCell(pack, ContinentPlayerTotal);
+		WritePackString(pack, szPlayerName);
+		WritePackString(pack, szContinentCode);
+		WritePackCell(pack, style);
+
+		//GET CLIENT CONTINENT RANK
+		char szQuery[512];
+		Format(szQuery, sizeof szQuery, sql_stray_continentPlayerRank, szContinentCode, style, PlayerPoints);
+		SQL_TQuery(g_hDb, db_GetPlayerContinentRankCallback, szQuery, pack, DBPrio_Low);
+	}
 }
 
 public void db_GetPlayerContinentRankCallback(Handle owner, Handle hndl, const char[] error, any pack)
@@ -13117,21 +13387,47 @@ public void db_GetPlayerContinentRankCallback(Handle owner, Handle hndl, const c
 //sm_continent <playername>
 //sm_continentrank <playername> <style>
 //sm_continentnrank <style> <playername>
-public void db_SelectCustomPlayerContinentRank(int client, char szPlayerName[MAX_NAME_LENGTH], int style)
+public void db_SelectCustomPlayerContinentRank(int client, char szPlayerName[MAX_NAME_LENGTH], int style) // API'd up
 {
 	// Escape name for SQL injection protection
 	char szName[MAX_NAME_LENGTH * 2 + 1];
 	SQL_EscapeString(g_hDb, szPlayerName, szName, MAX_NAME_LENGTH);
+	
+	if (GetConVarBool(g_hSurfApiEnabled))
+	{
+		char apiRoute[512];
+		FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/continentPlayerRankByName?name=%s", g_szApiHost, szName);
 
-	Handle pack = CreateDataPack();
-	WritePackCell(pack, client);
-	WritePackString(pack, szName);
-	WritePackCell(pack, style);
+		DataPack dp = new DataPack();
+		dp.WriteString("db_SelectCustomPlayerContinentRank");
+		dp.WriteFloat(GetGameTime());
+		dp.WriteCell(client);
+		dp.WriteString(szName);
+		dp.WriteCell(style);
 
-	//CHECK IF PLAYER EXISTS
-	char szQuery[512];
-	Format(szQuery, sizeof szQuery, sql_stray_continentPlayerRankByName, szName);
-	SQL_TQuery(g_hDb, db_SelectCustomPlayerContinentRankCallback, szQuery, pack, DBPrio_Low);
+		dp.Reset();
+
+		if (g_bApiDebug)
+		{
+			PrintToServer("API ROUTE: %s", apiRoute);
+		}
+
+		/* RipExt */
+		HTTPRequest request = new HTTPRequest(apiRoute);
+		request.Get(apiSelectPlayerCountryRankCallback, dp);
+	}
+	else
+	{
+		Handle pack = CreateDataPack();
+		WritePackCell(pack, client);
+		WritePackString(pack, szName);
+		WritePackCell(pack, style);
+
+		//CHECK IF PLAYER EXISTS
+		char szQuery[512];
+		Format(szQuery, sizeof szQuery, sql_stray_continentPlayerRankByName, szName);
+		SQL_TQuery(g_hDb, db_SelectCustomPlayerContinentRankCallback, szQuery, pack, DBPrio_Low);
+	}
 }
 
 public void db_SelectCustomPlayerContinentRankCallback(Handle owner, Handle hndl, const char[] error, any pack)
@@ -13158,21 +13454,47 @@ public void db_SelectCustomPlayerContinentRankCallback(Handle owner, Handle hndl
 	}
 }
 
-public void db_SelectCustomPlayerContinentRank_GetContinent(int client, char szPlayerName[MAX_NAME_LENGTH], int style)
+public void db_SelectCustomPlayerContinentRank_GetContinent(int client, char szPlayerName[MAX_NAME_LENGTH], int style) // API'd up
 {
 	// Escape name for SQL injection protection
 	char szName[MAX_NAME_LENGTH * 2 + 1];
 	SQL_EscapeString(g_hDb, szPlayerName, szName, MAX_NAME_LENGTH);
+	
+	if (GetConVarBool(g_hSurfApiEnabled))
+	{
+		char apiRoute[512];
+		FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/continentGetPlayerContinentByName?name=%s&style=%i", g_szApiHost, szName, style);
 
-	Handle pack = CreateDataPack();
-	WritePackCell(pack, client);
-	WritePackString(pack, szName);
-	WritePackCell(pack, style);
+		DataPack dp = new DataPack();
+		dp.WriteString("db_SelectCustomPlayerContinentRank_GetContinent");
+		dp.WriteFloat(GetGameTime());
+		dp.WriteCell(client);
+		dp.WriteString(szName);
+		dp.WriteCell(style);
 
-	//GET SELECT PLAYER CONTINENT
-	char szQuery[512];
-	Format(szQuery, sizeof szQuery, sql_stray_continentGetPlayerContinentByName, szName, style);
-	SQL_TQuery(g_hDb, db_SelectCustomPlayerContinentRank_GetContinentCallback, szQuery, pack, DBPrio_Low);
+		dp.Reset();
+
+		if (g_bApiDebug)
+		{
+			PrintToServer("API ROUTE: %s", apiRoute);
+		}
+
+		/* RipExt */
+		HTTPRequest request = new HTTPRequest(apiRoute);
+		request.Get(apiSelectPlayerContinentByNameCallback, dp);
+	}
+	else
+	{
+		Handle pack = CreateDataPack();
+		WritePackCell(pack, client);
+		WritePackString(pack, szName);
+		WritePackCell(pack, style);
+
+		//GET SELECT PLAYER CONTINENT
+		char szQuery[512];
+		Format(szQuery, sizeof szQuery, sql_stray_continentGetPlayerContinentByName, szName, style);
+		SQL_TQuery(g_hDb, db_SelectCustomPlayerContinentRank_GetContinentCallback, szQuery, pack, DBPrio_Low);
+	}
 }
 
 public void db_SelectCustomPlayerContinentRank_GetContinentCallback(Handle owner, Handle hndl, const char[] error, any pack)
@@ -13203,21 +13525,49 @@ public void db_SelectCustomPlayerContinentRank_GetContinentCallback(Handle owner
 }
 
 //sm_continenttop
-public void db_SelectContinentTOP(int client, char szContinentCode[3], int style)
+public void db_SelectContinentTOP(int client, char szContinentCode[3], int style) // API'd up
 {
 	if (!IsValidClient(client))
+	{
 		return;
+	}
 
 	g_iContinentTopStyleSelected[client] = style;
+	
+	if (GetConVarBool(g_hSurfApiEnabled))
+	{
+		char apiRoute[512];
+		FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/continentTop?continentCode=%s&style=%i", g_szApiHost, szContinentCode, style);
 
-	Handle pack = CreateDataPack();
-	WritePackCell(pack, client);
-	WritePackString(pack, szContinentCode);
-	WritePackCell(pack, style);
+		DataPack dp = new DataPack();
+		dp.WriteString("db_SelectContinentTOP");
+		dp.WriteFloat(GetGameTime());
+		dp.WriteCell(client);
+		dp.WriteString(szContinentCode);
+		dp.WriteCell(style);
 
-	char szQuery[512];
-	Format(szQuery, sizeof szQuery, sql_stray_continentTop, szContinentCode, style);
-	SQL_TQuery(g_hDb, db_SelectContinentTOPCallback, szQuery, pack, DBPrio_Low);
+		dp.Reset();
+
+		if (g_bApiDebug)
+		{
+			PrintToServer("API ROUTE: %s", apiRoute);
+		}
+
+		/* RipExt */
+		HTTPRequest request = new HTTPRequest(apiRoute);
+		request.Get(apiSelectContinentTopCallback, dp);
+	}
+	else
+	{
+		Handle pack = CreateDataPack();
+		WritePackCell(pack, client);
+		WritePackString(pack, szContinentCode);
+		WritePackCell(pack, style);
+
+		char szQuery[512];
+		Format(szQuery, sizeof szQuery, sql_stray_continentTop, szContinentCode, style);
+		SQL_TQuery(g_hDb, db_SelectContinentTOPCallback, szQuery, pack, DBPrio_Low);
+	}
 }
 
 public void db_SelectContinentTOPCallback(Handle owner, Handle hndl, const char[] error, any pack)
@@ -13318,20 +13668,47 @@ public int ContinentTopMenu(Menu menu, MenuAction action, int param1, int param2
 	return 0;
 }
 
-public void db_GetContinentNames(int client, int style)
+public void db_GetContinentNames(int client, int style) // API'd up
 {
 	if (!IsValidClient(client))
+	{
 		return;
+	}
 
 	g_iContinentTopStyleSelected[client] = style;
 
-	Handle pack = CreateDataPack();
-	WritePackCell(pack, client);
-	WritePackCell(pack, style);
+	if (GetConVarBool(g_hSurfApiEnabled))
+	{
+		char apiRoute[512];
+		FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/continentNames?style=%i", g_szApiHost, style);
 
-	char szQuery[512];
-	Format(szQuery, sizeof szQuery, sql_stray_continentNames, style);
-	SQL_TQuery(g_hDb, db_GetContinentNamesCallback, szQuery, pack, DBPrio_Low);
+		DataPack dp = new DataPack();
+		dp.WriteString("db_GetContinentNames");
+		dp.WriteFloat(GetGameTime());
+		dp.WriteCell(client);
+		dp.WriteCell(style);
+
+		dp.Reset();
+
+		if (g_bApiDebug)
+		{
+			PrintToServer("API ROUTE: %s", apiRoute);
+		}
+
+		/* RipExt */
+		HTTPRequest request = new HTTPRequest(apiRoute);
+		request.Get(apiSelectAllContinentsCallback, dp);
+	}
+	else
+	{
+		Handle pack = CreateDataPack();
+		WritePackCell(pack, client);
+		WritePackCell(pack, style);
+
+		char szQuery[512];
+		Format(szQuery, sizeof szQuery, sql_stray_continentNames, style);
+		SQL_TQuery(g_hDb, db_GetContinentNamesCallback, szQuery, pack, DBPrio_Low);
+	}
 }
 
 public void db_GetContinentNamesCallback(Handle owner, Handle hndl, const char[] error, any pack)
@@ -13418,11 +13795,35 @@ public int ContinentMenu(Menu menu, MenuAction action, int param1, int param2)
 
 
 
-public void db_ViewPlayerRank(int client)
+public void db_ViewPlayerRank(int client) // API'd up
 {
-	char szQuery[512];
-	Format(szQuery, sizeof szQuery, sql_stray_viewPlayerRank, g_iCurrentStyle[client], g_szSteamID[client], g_iCurrentStyle[client]);
-	SQL_TQuery(g_hDb, db_ViewPlayerRankCallback, szQuery, client, DBPrio_Low);
+	if (GetConVarBool(g_hSurfApiEnabled))
+	{
+		char apiRoute[512];
+		FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/viewPlayerRank?style=%i&steamid32=%s", g_szApiHost, g_iCurrentStyle[client], g_szSteamID[client]);
+
+		DataPack dp = new DataPack();
+		dp.WriteString("db_ViewPlayerRank");
+		dp.WriteFloat(GetGameTime());
+		dp.WriteCell(client);
+
+		dp.Reset();
+
+		if (g_bApiDebug)
+		{
+			PrintToServer("API ROUTE: %s", apiRoute);
+		}
+
+		/* RipExt */
+		HTTPRequest request = new HTTPRequest(apiRoute);
+		request.Get(apiSelectPlayerRankCallback, dp);
+	}
+	else
+	{
+		char szQuery[512];
+		Format(szQuery, sizeof szQuery, sql_stray_viewPlayerRank, g_iCurrentStyle[client], g_szSteamID[client], g_iCurrentStyle[client]);
+		SQL_TQuery(g_hDb, db_ViewPlayerRankCallback, szQuery, client, DBPrio_Low);
+	}
 }
 
 public void db_ViewPlayerRankCallback(Handle owner, Handle hndl, const char[] error, any client)
@@ -13510,16 +13911,42 @@ public void db_ViewPlayerRankCallback(Handle owner, Handle hndl, const char[] er
 
 }
 
-public void db_GetNextRankPoints(int client, int style, int points, int next_rank, char szNextRankName[128])
+public void db_GetNextRankPoints(int client, int style, int points, int next_rank, char szNextRankName[128]) // API'd up
 {
-	Handle pack = CreateDataPack();
-	WritePackCell(pack, client);
-	WritePackCell(pack, points);
-	WritePackString(pack, szNextRankName);
+	if (GetConVarBool(g_hSurfApiEnabled))
+	{
+		char apiRoute[512];
+		FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/getNextRankPoints?style=%i&limit=%i", g_szApiHost, style, next_rank - 1);
 
-	char szQuery[512];
-	Format(szQuery, sizeof szQuery, sql_stray_getNextRankPoints, style, next_rank - 1);
-	SQL_TQuery(g_hDb, db_GetNextRankPointsCallback, szQuery, pack, DBPrio_Low);
+		DataPack dp = new DataPack();
+		dp.WriteString("db_GetNextRankPoints");
+		dp.WriteFloat(GetGameTime());
+		dp.WriteCell(client);
+		dp.WriteCell(points);
+		dp.WriteString(szNextRankName);
+
+		dp.Reset();
+
+		if (g_bApiDebug)
+		{
+			PrintToServer("API ROUTE: %s", apiRoute);
+		}
+
+		/* RipExt */
+		HTTPRequest request = new HTTPRequest(apiRoute);
+		request.Get(apiSelectNextRankPointsCallback, dp);
+	}
+	else
+	{
+		Handle pack = CreateDataPack();
+		WritePackCell(pack, client);
+		WritePackCell(pack, points);
+		WritePackString(pack, szNextRankName);
+
+		char szQuery[512];
+		Format(szQuery, sizeof szQuery, sql_stray_getNextRankPoints, style, next_rank - 1);
+		SQL_TQuery(g_hDb, db_GetNextRankPointsCallback, szQuery, pack, DBPrio_Low);
+	}
 }
 
 public void db_GetNextRankPointsCallback(Handle owner, Handle hndl, const char[] error, DataPack pack)

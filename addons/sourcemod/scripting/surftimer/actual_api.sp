@@ -976,7 +976,7 @@ public void apiSelectCheckpointsCallback(HTTPResponse response, DataPack data)
 		g_bCheckpointsFound[zoneGrp][client]			  = true;
 		g_fCheckpointTimesRecord[zoneGrp][client][cp - 1] = time;
 
-		delete jsonObject
+		delete jsonObject;
 	}
 	delete jsonArray;
 
@@ -1036,7 +1036,7 @@ public void apiSelectCheckpointsInZonegroupCallback(HTTPResponse response, DataP
 		g_bCheckpointsFound[zonegrp][client]			  = true;
 		g_fCheckpointTimesRecord[zonegrp][client][cp - 1] = time;
 
-		delete jsonObject
+		delete jsonObject;
 	}
 
 	if (g_bhasStages)
@@ -1095,7 +1095,7 @@ public void apiSelectRecordCheckpointCallback(HTTPResponse response, DataPack da
 				g_bCheckpointRecordFound[zonegroup] = true;
 		}
 
-		delete jsonObject
+		delete jsonObject;
 	}
 
 	if (!g_bServerDataLoaded)
@@ -1153,7 +1153,7 @@ public void apiSelectStageTimesCallback(HTTPResponse response, DataPack data)
 		float	   time						   = jsonObject.GetFloat("stage_time");
 		g_fCCPStageTimesRecord[client][cp - 1] = time;
 
-		delete jsonObject
+		delete jsonObject;
 	}
 
 	db_LoadStageAttempts(client);
@@ -1210,7 +1210,7 @@ public void apiSelectStageAttemptsCallback(HTTPResponse response, DataPack data)
 		int		   attempts						  = jsonObject.GetInt("stage_attempts");
 		g_iCCPStageAttemptsRecord[client][cp - 1] = attempts;
 
-		delete jsonObject
+		delete jsonObject;
 	}
 
 	if (!g_bSettingsLoaded[client])
@@ -1407,7 +1407,7 @@ public void apiSelectBonusTotalCountCallback(HTTPResponse response, DataPack dat
 		else
 			g_iStyleBonusCount[style][zonegroup] = count;
 
-		delete jsonObject
+		delete jsonObject;
 	}
 
 	if (!g_bServerDataLoaded)
@@ -1502,7 +1502,7 @@ public void apiSelectPersonalBonusCallback(HTTPResponse response, DataPack data)
 			}
 		}
 
-		delete jsonObject
+		delete jsonObject;
 	}
 
 	if (!g_bSettingsLoaded[client])
@@ -1574,7 +1574,7 @@ public void apiSelectPlayerRankBonus(HTTPResponse response, DataPack data)
 	// 	JSONObject jsonObject = view_as<JSONObject>(jsonArray.Get(i));
 	// 	char name[MAX_NAME_LENGTH];
 
-	// 	delete jsonObject
+	// 	delete jsonObject;
 	// }
 
 	delete jsonArray;
@@ -1667,7 +1667,7 @@ public void apiSelectFastestBonusCallback(HTTPResponse response, DataPack data)
 		g_iRecordPreStrafeBonus[1][zonegroup][style] = velStartXYZ;
 		g_iRecordPreStrafeBonus[2][zonegroup][style] = velStartZ;
 
-		delete jsonObject
+		delete jsonObject;
 	}
 
 	for (int i = 0; i < MAXZONEGROUPS; i++)
@@ -1747,7 +1747,7 @@ public void apiSelectAllBonusTimesInMapCallback(HTTPResponse response, DataPack 
 		for (int k = 1; k < MAXZONEGROUPS; k++)
 			g_fAvg_BonusTime[k] = runtime[k] / runtimes[k];
 
-		delete jsonObject
+		delete jsonObject;
 	}
 
 	if (!g_bServerDataLoaded)
@@ -1833,7 +1833,7 @@ public void apiSelectBonusTopSurfersCallback(HTTPResponse response, DataPack dat
 				i++;
 			}
 		}
-		delete jsonObject
+		delete jsonObject;
 	}
 	if (i == 1)
 	{
@@ -2627,7 +2627,7 @@ public void apiSelectTop100PlayersCallback(HTTPResponse response, DataPack data)
 		menu.AddItem(szSteamID, szValue, ITEMDRAW_DEFAULT);
 		i++;
 
-		delete jsonObject
+		delete jsonObject;
 	}
 	if (i == 1)
 	{
@@ -3110,7 +3110,7 @@ public void apiSelectRankedPlayersCallback(HTTPResponse response, DataPack data)
 		{
 			CalculatePlayerRank(66, 0);
 		}
-		delete jsonObject
+		delete jsonObject;
 	}
 
 	delete jsonArray;
@@ -3237,7 +3237,7 @@ public void apiSelectPlayerPointsCallback(HTTPResponse response, DataPack data)
 			g_iTotalConnections[client] = jsonObject.GetInt("connections");
 		}
 
-		delete jsonObject
+		delete jsonObject;
 	}
 
 	g_iTotalConnections[client]++;
@@ -3304,6 +3304,881 @@ public void apiSelectCountryRankCallback(HTTPResponse response, DataPack data)
 	db_GetPlayerPoints(client, total, szPlayerName, szCountry, style);
 
 	delete jsonObject;
+
+	LogQueryTime("====== [Surf API] : Finished %s in: %f", func, GetGameTime() - fTime);
+
+	return;
+}
+
+public void apiSelectPlayerPointsByNameCallback(HTTPResponse response, DataPack data)
+{
+	char func[128], szPlayerName[MAX_NAME_LENGTH], szCountry[100], szContinentCode[3];
+	data.ReadString(func, sizeof(func));
+	float fTime	 = data.ReadFloat();
+	int	  client = data.ReadCell();
+
+	if (response.Status == HTTPStatus_NoContent)
+	{
+		CPrintToChat(client, "%t", "Player_Data_Not_Found", g_szChatPrefix);
+		LogQueryTime("[Surf API] No entries found (%s)", func);
+		return;
+	}
+	else if (response.Status != HTTPStatus_OK)
+	{
+		LogError("[Surf API] API Error %i (%s)", response.Status, func);
+		return;
+	}
+
+	JSONObject jsonObject = view_as<JSONObject>(response.Data);
+	if (g_bApiDebug)
+	{
+		char out[1024];
+		jsonObject.ToString(out, sizeof(out), JSON_DECODE_ANY);
+		PrintToServer("%s: %s", func, out);
+	}
+	int points = jsonObject.GetInt("points");
+
+	if (StrEqual(func, "db_GetPlayerPoints"))
+	{
+		int CountryPlayerTotal = data.ReadCell();
+		data.ReadString(szPlayerName, sizeof(szPlayerName));
+		data.ReadString(szCountry, sizeof(szCountry));
+		int style = data.ReadCell();
+		delete data;
+
+		db_GetPlayerCountryRank(points, CountryPlayerTotal, szPlayerName, szCountry, style);
+	}
+	else if (StrEqual(func, "db_GetPlayerPointsContinent"))
+	{
+		int ContinentPlayerTotal = data.ReadCell();
+		data.ReadString(szPlayerName, sizeof(szPlayerName));
+		data.ReadString(szContinentCode, sizeof(szContinentCode));
+		int style = data.ReadCell();
+		delete data;
+
+		db_GetPlayerContinentRank(points, ContinentPlayerTotal, szPlayerName, szContinentCode, style);
+	}
+
+	LogQueryTime("====== [Surf API] : Finished %s in: %f", func, GetGameTime() - fTime);
+
+	delete jsonObject;
+}
+
+public void apiSelectPlayerCountryRankCallback(HTTPResponse response, DataPack data)
+{
+	char func[128], szPlayerName[MAX_NAME_LENGTH], szCountry[100];
+	data.ReadString(func, sizeof(func));
+	float fTime				 = data.ReadFloat();
+	int	  PlayerPoints		 = data.ReadCell();
+	int	  CountryPlayerTotal = data.ReadCell();
+	data.ReadString(szPlayerName, sizeof(szPlayerName));
+	data.ReadString(szCountry, sizeof(szCountry));
+	int style = data.ReadCell();
+	delete data;
+
+	if (response.Status == HTTPStatus_NoContent)
+	{
+		LogQueryTime("[Surf API] No entries found (%s)", func);
+		return;
+	}
+	else if (response.Status != HTTPStatus_OK)
+	{
+		LogError("[Surf API] API Error %i (%s)", response.Status, func);
+		return;
+	}
+
+	JSONObject jsonObject = view_as<JSONObject>(response.Data);
+	if (g_bApiDebug)
+	{
+		char out[1024];
+		jsonObject.ToString(out, sizeof(out), JSON_DECODE_ANY);
+		PrintToServer("%s: %s", func, out);
+	}
+	int total = jsonObject.GetInt("COUNT(steamid) + 1");
+	CPrintToChatAll("%t", "Country_Rank", g_szChatPrefix, g_szStyleRecordPrint[style], szPlayerName, total, CountryPlayerTotal, szCountry, PlayerPoints);
+
+	LogQueryTime("====== [Surf API] : Finished %s in: %f", func, GetGameTime() - fTime);
+
+	delete jsonObject;
+}
+
+public void apiSelectPlayerCountryByNameCallback(HTTPResponse response, DataPack data)
+{
+	char func[128], szPlayerName[MAX_NAME_LENGTH], szCountryName[100];
+	data.ReadString(func, sizeof(func));
+	float fTime	 = data.ReadFloat();
+	int	  client = data.ReadCell();
+	data.ReadString(szPlayerName, sizeof(szPlayerName));
+	int style = data.ReadCell();
+	delete data;
+
+	if (response.Status == HTTPStatus_NoContent)
+	{
+		CPrintToChat(client, "%t", "Player_Data_Not_Found", g_szChatPrefix);
+		LogQueryTime("[Surf API] No entries found (%s)", func);
+		return;
+	}
+	else if (response.Status != HTTPStatus_OK)
+	{
+		LogError("[Surf API] API Error %i (%s)", response.Status, func);
+		return;
+	}
+
+	JSONObject jsonObject = view_as<JSONObject>(response.Data);
+	if (g_bApiDebug)
+	{
+		char out[1024];
+		jsonObject.ToString(out, sizeof(out), JSON_DECODE_ANY);
+		PrintToServer("%s: %s", func, out);
+	}
+
+	jsonObject.GetString("country", szCountryName, sizeof(szCountryName));
+	db_SelectCountryRank(client, szPlayerName, szCountryName, style);
+
+	LogQueryTime("====== [Surf API] : Finished %s in: %f", func, GetGameTime() - fTime);
+
+	delete jsonObject;
+}
+
+public void apiSelectCountryTopCallback(HTTPResponse response, DataPack data)
+{
+	char func[128], szCountryName[56];
+	data.ReadString(func, sizeof(func));
+	float fTime	 = data.ReadFloat();
+	int	  client = data.ReadCell();
+	data.ReadString(szCountryName, sizeof(szCountryName));
+	int style = data.ReadCell();
+	delete data;
+
+	Menu menu = CreateMenu(CountryTopMenu);
+	char szItem[256];
+
+	if (response.Status == HTTPStatus_NoContent)
+	{
+		CPrintToChat(client, "%t", "country_data_not_found", g_szChatPrefix);
+
+		SetMenuTitle(menu, "Country Top for %s | %s\n \n", szCountryName, g_szStyleMenuPrint[style]);
+
+		AddMenuItem(menu, "", "No Players Found", ITEMDRAW_DISABLED);
+
+		SetMenuExitBackButton(menu, true);
+		DisplayMenu(menu, client, MENU_TIME_FOREVER);
+
+		LogQueryTime("[Surf API] No entries found (%s)", func);
+		return;
+	}
+	else if (response.Status != HTTPStatus_OK)
+	{
+		LogError("[Surf API] API Error %i (%s)", response.Status, func);
+		delete menu;
+		return;
+	}
+
+	// Indicate that the response contains a JSON array
+	JSONArray jsonArray = view_as<JSONArray>(response.Data);
+	if (g_bApiDebug)
+	{
+		char out[1024];
+		jsonArray.ToString(out, sizeof(out), JSON_DECODE_ANY);
+		PrintToServer("%s: %s", func, out);
+	}
+
+	char szRank[16];
+	char szPlayerName[MAX_NAME_LENGTH];
+	int	 PlayerPoints;
+	int	 Style;
+
+	int	 row = 1;
+
+	for (int k = 0; k < jsonArray.Length; k++)
+	{
+		JSONObject jsonObject = view_as<JSONObject>(jsonArray.Get(k));
+		jsonObject.GetString("name", szPlayerName, sizeof(szPlayerName));
+		jsonObject.GetString("country", szCountryName, sizeof(szCountryName));
+		PlayerPoints = jsonObject.GetInt("points");
+		Style		 = jsonObject.GetInt("style");
+
+		char szStyle[256];
+		IntToString(Style, szStyle, sizeof szStyle);
+
+		if (row == 100)
+			Format(szRank, sizeof szRank, "[%i.]", row);
+		else if (row < 10)
+			Format(szRank, sizeof szRank, "[0%i.]  ", row);
+		else
+			Format(szRank, sizeof szRank, "[%i.]  ", row);
+
+		if (PlayerPoints < 10)
+			Format(szItem, sizeof szItem, "%s      %dp        %s", szRank, PlayerPoints, szPlayerName);
+		else if (PlayerPoints < 100)
+			Format(szItem, sizeof szItem, "%s     %dp       %s", szRank, PlayerPoints, szPlayerName);
+		else if (PlayerPoints < 1000)
+			Format(szItem, sizeof szItem, "%s   %dp       %s", szRank, PlayerPoints, szPlayerName);
+		else if (PlayerPoints < 10000)
+			Format(szItem, sizeof szItem, "%s %dp       %s", szRank, PlayerPoints, szPlayerName);
+		else if (PlayerPoints < 100000)
+			Format(szItem, sizeof szItem, "%s %dp     %s", szRank, PlayerPoints, szPlayerName);
+		else
+			Format(szItem, sizeof szItem, "%s %dp   %s", szRank, PlayerPoints, szPlayerName);
+
+		AddMenuItem(menu, szStyle, szItem, ITEMDRAW_DISABLED);
+
+		row++;
+		delete jsonObject;
+	}
+	delete jsonArray;
+
+	SetMenuTitle(menu, "Country Top for %s | %s\n \n    Rank   Points       Player", szCountryName, g_szStyleMenuPrint[Style]);
+	SetMenuPagination(menu, 5);
+	SetMenuExitBackButton(menu, true);
+	DisplayMenu(menu, client, MENU_TIME_FOREVER);
+
+	LogQueryTime("====== [Surf API] : Finished %s in: %f", func, GetGameTime() - fTime);
+
+	return;
+}
+
+public void apiSelectAllCountriesCallback(HTTPResponse response, DataPack data)
+{
+	char func[128];
+	data.ReadString(func, sizeof(func));
+	float fTime	 = data.ReadFloat();
+	int	  client = data.ReadCell();
+	int	  style	 = data.ReadCell();
+	delete data;
+
+	Menu menu = CreateMenu(CountriesMenu);
+
+	if (response.Status == HTTPStatus_NoContent)
+	{
+		CPrintToChat(client, "%t", "country_data_not_found", g_szChatPrefix);
+
+		SetMenuTitle(menu, "Countries List | %s\n \n", g_szStyleMenuPrint[style]);
+		AddMenuItem(menu, "", "No Countries Found", ITEMDRAW_DISABLED);
+
+		SetMenuExitBackButton(menu, true);
+		DisplayMenu(menu, client, MENU_TIME_FOREVER);
+
+		LogQueryTime("[Surf API] No entries found (%s)", func);
+		delete menu;
+		return;
+	}
+	else if (response.Status != HTTPStatus_OK)
+	{
+		LogError("[Surf API] API Error %i (%s)", response.Status, func);
+		return;
+	}
+
+	// Indicate that the response contains a JSON array
+	JSONArray jsonArray = view_as<JSONArray>(response.Data);
+	if (g_bApiDebug)
+	{
+		char out[1024];
+		jsonArray.ToString(out, sizeof(out), JSON_DECODE_ANY);
+		PrintToServer("%s: %s", func, out);
+	}
+
+	char szBuffer[256];
+	char szItem[256];
+	char szCountryName[56];
+	if (strcmp(g_szCountry[client], "", false) != 0)
+	{
+		Format(szItem, sizeof szItem, "My Country\n ");
+		Format(szBuffer, sizeof szBuffer, "%s-%d", g_szCountry[client], style);
+		AddMenuItem(menu, szBuffer, szItem);
+	}
+
+	for (int k = 0; k < jsonArray.Length; k++)
+	{
+		JSONObject jsonObject = view_as<JSONObject>(jsonArray.Get(k));
+		jsonObject.GetString("country", szCountryName, sizeof(szCountryName));
+
+		Format(szItem, sizeof(szItem), "%s", szCountryName);
+		Format(szBuffer, sizeof(szBuffer), "%s-%d", szCountryName, style);
+		AddMenuItem(menu, szBuffer, szItem);
+		delete jsonObject;
+	}
+
+	SetMenuTitle(menu, "Countries List | %s\n \n", g_szStyleMenuPrint[style]);
+	SetMenuExitBackButton(menu, true);
+
+	DisplayMenu(menu, client, MENU_TIME_FOREVER);
+
+	delete jsonArray;
+	LogQueryTime("====== [Surf API] : Finished %s in: %f", func, GetGameTime() - fTime);
+
+	return;
+}
+
+public void apiSelectContinentRankCallback(HTTPResponse response, DataPack data)
+{
+	char func[128], szPlayerName[MAX_NAME_LENGTH], szContinentCode[3];
+	data.ReadString(func, sizeof(func));
+	float fTime	 = data.ReadFloat();
+	int	  client = data.ReadCell();
+	data.ReadString(szPlayerName, sizeof(szPlayerName));
+	data.ReadString(szContinentCode, sizeof(szContinentCode));
+	int style = data.ReadCell();
+	delete data;
+
+	if (response.Status == HTTPStatus_NoContent)
+	{
+		LogQueryTime("[Surf API] No entries found (%s)", func);
+		return;
+	}
+	else if (response.Status != HTTPStatus_OK)
+	{
+		LogError("[Surf API] API Error %i (%s)", response.Status, func);
+		return;
+	}
+
+	JSONObject jsonObject = view_as<JSONObject>(response.Data);
+	int		   total	  = jsonObject.GetInt("COUNT(steamid)");
+	delete jsonObject;
+
+	db_GetPlayerPointsContinent(client, total, szPlayerName, szContinentCode, style);
+
+	LogQueryTime("====== [Surf API] : Finished %s in: %f", func, GetGameTime() - fTime);
+
+	return;
+}
+
+public void apiSelectContinentPlayerRankCallback(HTTPResponse response, DataPack data)
+{
+	char func[128], szPlayerName[MAX_NAME_LENGTH], szContinentCode[3];
+	data.ReadString(func, sizeof(func));
+	float fTime				   = data.ReadFloat();
+	int	  PlayerPoints		   = data.ReadCell();
+	int	  ContinentPlayerTotal = data.ReadCell();
+	data.ReadString(szPlayerName, sizeof(szPlayerName));
+	data.ReadString(szContinentCode, sizeof(szContinentCode));
+	int style = data.ReadCell();
+	delete data;
+
+	if (response.Status == HTTPStatus_NoContent)
+	{
+		LogQueryTime("[Surf API] No entries found (%s)", func);
+		return;
+	}
+	else if (response.Status != HTTPStatus_OK)
+	{
+		LogError("[Surf API] API Error %i (%s)", response.Status, func);
+		return;
+	}
+
+	JSONObject jsonObject = view_as<JSONObject>(response.Data);
+	int		   rank		  = jsonObject.GetInt("COUNT(steamid) + 1");
+	delete jsonObject;
+
+	char szContinentName[100];
+	GetContinentName(szContinentCode, szContinentName, sizeof(szContinentName));
+	CPrintToChatAll("%t", "Continent_Rank", g_szChatPrefix, g_szStyleRecordPrint[style], szPlayerName, rank, ContinentPlayerTotal, szContinentName, PlayerPoints);
+
+	LogQueryTime("====== [Surf API] : Finished %s in: %f", func, GetGameTime() - fTime);
+
+	return;
+}
+
+public void apiSelectContinentPlayerRankByNameCallback(HTTPResponse response, DataPack data)
+{
+	char func[128], szPlayerName[MAX_NAME_LENGTH];
+	data.ReadString(func, sizeof(func));
+	float fTime	 = data.ReadFloat();
+	int	  client = data.ReadCell();
+	data.ReadString(szPlayerName, sizeof(szPlayerName));
+	int style = data.ReadCell();
+	delete data;
+
+	if (response.Status == HTTPStatus_NoContent)
+	{
+		CPrintToChat(client, "%t", "PlayerNotFound", g_szChatPrefix, szPlayerName);
+
+		LogQueryTime("[Surf API] No entries found (%s)", func);
+		return;
+	}
+	else if (response.Status != HTTPStatus_OK)
+	{
+		LogError("[Surf API] API Error %i (%s)", response.Status, func);
+		return;
+	}
+
+	// JSONObject jsonObject = view_as<JSONObject>(response.Data); // No data from the response is used
+	// int		   rank		  = jsonObject.GetInt("COUNT(steamid) + 1");
+	// delete jsonObject;
+
+	if (StrEqual(func, "db_SelectCustomPlayerCountryRank"))
+	{
+		db_SelectCustomPlayerCountryRank_GetCountry(client, szPlayerName, style);
+	}
+	else if (StrEqual(func, "db_SelectCustomPlayerContinentRank"))
+	{
+		db_SelectCustomPlayerContinentRank_GetContinent(client, szPlayerName, style);
+	}
+	LogQueryTime("====== [Surf API] : Finished %s in: %f", func, GetGameTime() - fTime);
+
+	return;
+}
+
+public void apiSelectPlayerContinentByNameCallback(HTTPResponse response, DataPack data)
+{
+	char func[128], szPlayerName[MAX_NAME_LENGTH], szContinentCode[3];
+	data.ReadString(func, sizeof(func));
+	float fTime	 = data.ReadFloat();
+	int	  client = data.ReadCell();
+	data.ReadString(szPlayerName, sizeof(szPlayerName));
+	int style = data.ReadCell();
+	delete data;
+
+	if (response.Status == HTTPStatus_NoContent)
+	{
+		CPrintToChat(client, "%t", "Player_Data_Not_Found", g_szChatPrefix);
+
+		LogQueryTime("[Surf API] No entries found (%s)", func);
+		return;
+	}
+	else if (response.Status != HTTPStatus_OK)
+	{
+		LogError("[Surf API] API Error %i (%s)", response.Status, func);
+		return;
+	}
+
+	JSONObject jsonObject = view_as<JSONObject>(response.Data);
+	jsonObject.GetString("continentCode", szContinentCode, sizeof(szContinentCode));
+	delete jsonObject;
+
+	db_SelectContinentRank(client, szPlayerName, szContinentCode, style);
+
+	LogQueryTime("====== [Surf API] : Finished %s in: %f", func, GetGameTime() - fTime);
+
+	return;
+}
+
+public void apiSelectContinentTopCallback(HTTPResponse response, DataPack data)
+{
+	char func[128], szContinentCode[3], szContinentName[100], szItem[256];
+	data.ReadString(func, sizeof(func));
+	float fTime	 = data.ReadFloat();
+	int	  client = data.ReadCell();
+	data.ReadString(szContinentCode, sizeof(szContinentCode));
+	int style = data.ReadCell();
+	delete data;
+
+	Menu menu = CreateMenu(ContinentTopMenu);
+	GetContinentName(szContinentCode, szContinentName, sizeof(szContinentName));
+
+	if (response.Status == HTTPStatus_NoContent)
+	{
+		CPrintToChat(client, "%t", "continent_data_not_found", g_szChatPrefix);
+
+		SetMenuTitle(menu, "Continent Top for %s | %s\n \n", szContinentName, g_szStyleMenuPrint[style]);
+		AddMenuItem(menu, "", "No Players Found", ITEMDRAW_DISABLED);
+		SetMenuExitBackButton(menu, true);
+		DisplayMenu(menu, client, MENU_TIME_FOREVER);
+
+		LogQueryTime("[Surf API] No entries found (%s)", func);
+		return;
+	}
+	else if (response.Status != HTTPStatus_OK)
+	{
+		LogError("[Surf API] API Error %i (%s)", response.Status, func);
+		delete menu;
+		return;
+	}
+
+	char	  szRank[16], szPlayerName[MAX_NAME_LENGTH];
+	int		  PlayerPoints, Style, row = 1;
+
+	// Indicate that the response contains a JSON array
+	JSONArray jsonArray = view_as<JSONArray>(response.Data);
+	if (g_bApiDebug)
+	{
+		char out[1024];
+		jsonArray.ToString(out, sizeof(out), JSON_DECODE_ANY);
+		PrintToServer("%s: %s", func, out);
+	}
+
+	for (int k = 0; k < jsonArray.Length; k++)
+	{
+		JSONObject jsonObject = view_as<JSONObject>(jsonArray.Get(k));
+		jsonObject.GetString("name", szPlayerName, sizeof(szPlayerName));
+		PlayerPoints = jsonObject.GetInt("points");
+		Style		 = jsonObject.GetInt("style");
+
+		char szStyle[256];
+		IntToString(Style, szStyle, sizeof szStyle);
+
+		if (row == 100)
+			Format(szRank, sizeof szRank, "[%i.]", row);
+		else if (row < 10)
+			Format(szRank, sizeof szRank, "[0%i.]  ", row);
+		else
+			Format(szRank, sizeof szRank, "[%i.]  ", row);
+
+		if (PlayerPoints < 10)
+			Format(szItem, sizeof szItem, "%s      %dp        %s", szRank, PlayerPoints, szPlayerName);
+		else if (PlayerPoints < 100)
+			Format(szItem, sizeof szItem, "%s     %dp       %s", szRank, PlayerPoints, szPlayerName);
+		else if (PlayerPoints < 1000)
+			Format(szItem, sizeof szItem, "%s   %dp       %s", szRank, PlayerPoints, szPlayerName);
+		else if (PlayerPoints < 10000)
+			Format(szItem, sizeof szItem, "%s %dp       %s", szRank, PlayerPoints, szPlayerName);
+		else if (PlayerPoints < 100000)
+			Format(szItem, sizeof szItem, "%s %dp     %s", szRank, PlayerPoints, szPlayerName);
+		else
+			Format(szItem, sizeof szItem, "%s %dp   %s", szRank, PlayerPoints, szPlayerName);
+
+		AddMenuItem(menu, szStyle, szItem, ITEMDRAW_DISABLED);
+
+		row++;
+		delete jsonObject;
+	}
+
+	delete jsonArray;
+
+	SetMenuTitle(menu, "Continent Top for %s | %s\n \n    Rank   Points       Player", szContinentName, g_szStyleMenuPrint[Style]);
+	SetMenuPagination(menu, 5);
+	SetMenuExitBackButton(menu, true);
+
+	DisplayMenu(menu, client, MENU_TIME_FOREVER);
+
+	LogQueryTime("====== [Surf API] : Finished %s in: %f", func, GetGameTime() - fTime);
+
+	return;
+}
+
+public void apiSelectAllContinentsCallback(HTTPResponse response, DataPack data)
+{
+	char func[128];
+	data.ReadString(func, sizeof(func));
+	float fTime	 = data.ReadFloat();
+	int	  client = data.ReadCell();
+	int	  style	 = data.ReadCell();
+	delete data;
+
+	Menu menu = CreateMenu(CountriesMenu);
+
+	if (response.Status == HTTPStatus_NoContent)
+	{
+		CPrintToChat(client, "%t", "continent_data_not_found", g_szChatPrefix);
+
+		SetMenuTitle(menu, "Continent's List | %s\n \n", g_szStyleMenuPrint[style]);
+		AddMenuItem(menu, "", "No Continent's Found", ITEMDRAW_DISABLED);
+
+		SetMenuExitBackButton(menu, true);
+		DisplayMenu(menu, client, MENU_TIME_FOREVER);
+
+		LogQueryTime("[Surf API] No entries found (%s)", func);
+		delete menu;
+		return;
+	}
+	else if (response.Status != HTTPStatus_OK)
+	{
+		LogError("[Surf API] API Error %i (%s)", response.Status, func);
+		return;
+	}
+
+	// Indicate that the response contains a JSON array
+	JSONArray jsonArray = view_as<JSONArray>(response.Data);
+	if (g_bApiDebug)
+	{
+		char out[1024];
+		jsonArray.ToString(out, sizeof(out), JSON_DECODE_ANY);
+		PrintToServer("%s: %s", func, out);
+	}
+
+	char szBuffer[256], szItem[256], szContinentCode[3], szContinentName[100];
+	GetContinentName(szContinentCode, szContinentName, sizeof(szContinentName));
+
+	if (strcmp(g_szContinentCode[client], "", false) != 0)
+	{
+		Format(szItem, sizeof(szItem), "My Continent\n ");
+		Format(szBuffer, sizeof(szBuffer), "%s-%d", g_szContinentCode[client], style);
+		AddMenuItem(menu, szBuffer, szItem);
+	}
+
+	for (int k = 0; k < jsonArray.Length; k++)
+	{
+		JSONObject jsonObject = view_as<JSONObject>(jsonArray.Get(k));
+		jsonObject.GetString("continentCode", szContinentCode, sizeof(szContinentCode));
+		GetContinentName(szContinentCode, szContinentName, sizeof szContinentName);
+
+		Format(szItem, sizeof(szItem), "%s", szContinentName);
+		Format(szBuffer, sizeof(szBuffer), "%s-%d", szContinentCode, style);
+		AddMenuItem(menu, szBuffer, szItem);
+
+		delete jsonObject;
+	}
+
+	SetMenuTitle(menu, "Continent's List | %s\n \n", g_szStyleMenuPrint[style]);
+	SetMenuExitBackButton(menu, true);
+
+	DisplayMenu(menu, client, MENU_TIME_FOREVER);
+
+	delete jsonArray;
+	LogQueryTime("====== [Surf API] : Finished %s in: %f", func, GetGameTime() - fTime);
+
+	return;
+}
+
+public void apiSelectPlayerRankCallback(HTTPResponse response, DataPack data)
+{
+	char func[128];
+	data.ReadString(func, sizeof(func));
+	float fTime	 = data.ReadFloat();
+	int	  client = data.ReadCell();
+
+	delete data;
+
+	Menu menu = CreateMenu(CountriesMenu);
+
+	if (response.Status == HTTPStatus_NoContent)
+	{
+		LogQueryTime("[Surf API] No entries found (%s)", func);
+		delete menu;
+		return;
+	}
+	else if (response.Status != HTTPStatus_OK)
+	{
+		LogError("[Surf API] API Error %i (%s)", response.Status, func);
+		return;
+	}
+
+	// Indicate that the response contains a JSON array
+	JSONArray jsonArray = view_as<JSONArray>(response.Data);
+	if (g_bApiDebug)
+	{
+		char out[1024];
+		jsonArray.ToString(out, sizeof(out), JSON_DECODE_ANY);
+		PrintToServer("%s: %s", func, out);
+	}
+
+	JSONObject jsonObject = view_as<JSONObject>(jsonArray.Get(0));
+	int		   rank		  = jsonArray.Length;
+	int		   points	  = jsonObject.GetInt("points");
+	int		   style	  = jsonObject.GetInt("style");
+
+	// Get players skillgroup
+	SkillGroup RankValue;
+	SkillGroup Next_RankValue;
+	int		   index = GetSkillgroupIndex(rank, points);
+	GetArrayArray(g_hSkillGroups, index, RankValue, sizeof(SkillGroup));
+
+	if (index != 0)
+	{
+		GetArrayArray(g_hSkillGroups, index - 1, Next_RankValue, sizeof(Next_RankValue));
+
+		char szSkillGroup[128];
+		Format(szSkillGroup, sizeof(szSkillGroup), Next_RankValue.RankNameColored);
+		ReplaceString(szSkillGroup, sizeof(szSkillGroup), "{style}", "");
+
+		// FOR RANKS THAT USE POINT RANGE
+		// i.e
+		/*
+		"15"
+		{
+			"rankTitle" "{default}[{gray}ROOKIE{default}]"
+			"nameColour" "{gray}"
+			"points" "1-299"
+		}
+		*/
+		if (RankValue.PointsBot > -1 && RankValue.PointsTop > -1)
+		{
+			CPrintToChat(client, "%t", "NextRankPointRequired", g_szChatPrefix, Next_RankValue.PointsTop - points, szSkillGroup);
+		}
+		// FOR RANKS WITHOUT POINT RANGE
+		// i.e
+		/*
+		"16"
+		{
+			"rankTitle" "{default}[UNRANKED]"
+			"nameColour" "{default}"
+			"points" "0"
+		}
+		*/
+		else if (RankValue.PointReq > -1) {
+			CPrintToChat(client, "%t", "NextRankPointRequired", g_szChatPrefix, Next_RankValue.PointReq - points, szSkillGroup);
+		}
+		// FOR RANKS THAT DONT USE POINTS, BUT RATHER RANK RANGE
+		// i.e
+		/*
+		"4"
+		{
+			"rankTitle" "{default}[{pink}LEGEND{default}]"
+			"nameColour" "{pink}"
+			"rank" "4-10"
+		}
+		*/
+		else if (RankValue.RankBot > 0 && RankValue.RankTop > 0) {
+			db_GetNextRankPoints(client, style, points, Next_RankValue.RankTop, szSkillGroup);
+		}
+		// FOR RANKS THAT ARE A FIXED NUMBER
+		// i.e
+		/*
+		"1"
+		{
+			"rankTitle" "{default}[{style}{darkred}GENERAL{default}]"
+			"nameColour" "{darkred}"
+			"rank" "1"
+		}
+		*/
+		else {
+			db_GetNextRankPoints(client, style, points, Next_RankValue.RankReq, szSkillGroup);
+		}
+	}
+	else {
+		CPrintToChat(client, "%t", "MAX_RANK", g_szChatPrefix);
+	}
+
+	delete jsonObject;
+	delete jsonArray;
+	LogQueryTime("====== [Surf API] : Finished %s in: %f", func, GetGameTime() - fTime);
+
+	return;
+}
+
+public void apiSelectNextRankPointsCallback(HTTPResponse response, DataPack data)
+{
+	char func[128], szNextRankName[MAX_NAME_LENGTH];
+	data.ReadString(func, sizeof(func));
+	float fTime	 = data.ReadFloat();
+	int	  client = data.ReadCell();
+	int	  points = data.ReadCell();
+	data.ReadString(szNextRankName, sizeof(szNextRankName));
+	delete data;
+
+	if (response.Status == HTTPStatus_NoContent)
+	{
+		LogQueryTime("[Surf API] No entries found (%s)", func);
+		return;
+	}
+	else if (response.Status != HTTPStatus_OK)
+	{
+		LogError("[Surf API] API Error %i (%s)", response.Status, func);
+		return;
+	}
+
+	JSONObject jsonObject	   = view_as<JSONObject>(response.Data);
+	int		   response_points = jsonObject.GetInt("points");
+	delete jsonObject;
+
+	CPrintToChat(client, "%t", "NextRankPointRequired", g_szChatPrefix, response_points - points, szNextRankName);
+
+	LogQueryTime("====== [Surf API] : Finished %s in: %f", func, GetGameTime() - fTime);
+
+	return;
+}
+
+public void apiViewPlayerInfoCallback(HTTPResponse response, DataPack data)
+{
+	char func[128];
+	data.ReadString(func, sizeof(func));
+	float fTime	 = data.ReadFloat();
+	int	  client = data.ReadCell();
+	delete data;
+
+	if (response.Status == HTTPStatus_NoContent)
+	{
+		if (IsClientInGame(client))
+		{
+			CPrintToChat(client, "%t", "PlayerNotFound", g_szChatPrefix, g_szProfileName[client]);
+		}
+
+		LogQueryTime("[Surf API] No entries found (%s)", func);
+		return;
+	}
+	else if (response.Status != HTTPStatus_OK)
+	{
+		LogError("[Surf API] API Error %i (%s)", response.Status, func);
+		return;
+	}
+
+	JSONObject jsonObject = view_as<JSONObject>(response.Data);
+	char	   szSteamId[32], szName[MAX_NAME_LENGTH], szCountry[128], szSteamId64[64];
+	jsonObject.GetString("steamid", szSteamId, sizeof(szSteamId));
+	jsonObject.GetString("steamid64", szSteamId64, sizeof(szSteamId64));
+	jsonObject.GetString("name", szName, sizeof(szName));
+	jsonObject.GetString("country", szCountry, sizeof(szCountry));
+
+	int lastSeenUnix = jsonObject.GetInt("lastseen");
+	int joinUnix	 = jsonObject.GetInt("joined");
+	int connections	 = jsonObject.GetInt("connections");
+	int timeAlive	 = jsonObject.GetInt("timealive");
+	int timeSpec	 = jsonObject.GetInt("timespec");
+	delete jsonObject;
+
+	// Format Joined Time
+	char szTime[128];
+	FormatTime(szTime, sizeof(szTime), "%d %b %Y", joinUnix);
+
+	// Format Last Seen Time
+	int	 unix	  = GetTime();
+	int	 diffUnix = unix - lastSeenUnix;
+	char szBuffer[128];
+	diffForHumans(diffUnix, szBuffer, sizeof(szBuffer), 0);
+
+	int	 totalTime = (timeAlive + timeSpec);
+
+	char szTotalTime[128], szTimeAlive[128], szTimeSpec[128];
+
+	totalTimeForHumans(totalTime, szTotalTime, sizeof(szTotalTime));
+	totalTimeForHumans(timeAlive, szTimeAlive, sizeof(szTimeAlive));
+	totalTimeForHumans(timeSpec, szTimeSpec, sizeof(szTimeSpec));
+
+	Menu menu = CreateMenu(ProfileInfoMenuHandler);
+	char szTitle[1024];
+	Format(szTitle, 1024, "Player: %s\nSteamID: %s\n-------------------------------------- \n \nFirst Time Online: %s\nLast Time Online: %s\n \nTotal Online Time: %s\nTotal Alive Time: %s\nTotal Spec Time: %s\n \nTotal Connections %i\n \n", szName, szSteamId, szTime, szBuffer, szTotalTime, szTimeAlive, szTimeSpec, connections);
+
+	SetMenuTitle(menu, szTitle);
+
+	AddMenuItem(menu, szSteamId64, "Community Profile Link");
+	SetMenuExitButton(menu, true);
+	DisplayMenu(menu, client, MENU_TIME_FOREVER);
+
+	LogQueryTime("====== [Surf API] : Finished %s in: %f", func, GetGameTime() - fTime);
+
+	return;
+}
+
+public void apiPlayerRankCommandCallback(HTTPResponse response, DataPack data)
+{
+	char func[128];
+	data.ReadString(func, sizeof(func));
+	float fTime	 = data.ReadFloat();
+	int	  client = data.ReadCell();
+	delete data;
+
+	if (response.Status == HTTPStatus_NoContent)
+	{
+		CPrintToChat(client, "%t", "SQLTwo7", g_szChatPrefix);
+
+		LogQueryTime("[Surf API] No entries found (%s)", func);
+		return;
+	}
+	else if (response.Status != HTTPStatus_OK)
+	{
+		LogError("[Surf API] API Error %i (%s)", response.Status, func);
+		return;
+	}
+
+	char	   szName[MAX_NAME_LENGTH];
+	int		   rank;
+
+	JSONObject jsonObject = view_as<JSONObject>(response.Data);
+	jsonObject.GetString("name", szName, sizeof(szName));
+	int points = jsonObject.GetInt("points");
+	delete jsonObject;
+
+	if (g_rankArg[client] == -1)
+	{
+		rank			  = g_PlayerRank[client][0];
+		g_rankArg[client] = 1;
+	}
+	else
+	{
+		rank = g_rankArg[client];
+	}
+
+	CPrintToChatAll("%t", "SQL39", g_szChatPrefix, szName, rank, g_pr_RankedPlayers, points);
 
 	LogQueryTime("====== [Surf API] : Finished %s in: %f", func, GetGameTime() - fTime);
 

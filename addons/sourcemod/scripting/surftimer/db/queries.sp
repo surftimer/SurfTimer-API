@@ -76,6 +76,23 @@ char sql_selectPlayerProfile[]						= "SELECT steamid, steamid64, name, country,
 char sql_stray_point_calc_playerRankName[]			= "SELECT name FROM ck_playerrank WHERE steamid = '%s' AND style = %i;";	// merged with sql_selectPlayerName
 char sql_stray_playerRankByName[]					= "SELECT steamid FROM ck_playerrank WHERE style = %i AND name LIKE '%c%s%c' LIMIT 1;";
 char sql_stray_specificCountryRank[]				= "SELECT COUNT(steamid), country FROM ck_playerrank WHERE country = '%s' AND style = %i;";
+char sql_stray_getPlayerPointsByName[]				= "SELECT points FROM ck_playerrank WHERE name = '%s' AND style = %i;";
+char sql_stray_getPlayerCountryRank[]				= "SELECT COUNT(steamid) + 1 FROM ck_playerrank WHERE country = '%s' AND style = %i AND points > %i;";
+char sql_stray_countryRankPlayerCountryRankByName[] = "SELECT country FROM ck_playerrank WHERE name = '%s' AND style = %i;";
+char sql_stray_countryTop[]							= "SELECT name, country, points, style FROM ck_playerrank WHERE country = '%s' AND style = %i ORDER BY points DESC LIMIT 100;";
+char sql_stray_countryTopAllCountries[]				= "SELECT DISTINCT(country) FROM ck_playerrank WHERE style = %i ORDER BY country;";
+char sql_stray_specificContinentRank[]				= "SELECT COUNT(steamid) FROM ck_playerrank WHERE continentCode = '%s' AND style = %i;";
+char sql_stray_continentPlayerRank[]				= "SELECT COUNT(steamid) + 1 FROM ck_playerrank WHERE continentCode = '%s' AND style = %i AND points > %i;";
+char sql_stray_continentPlayerRankByName[]			= "SELECT * FROM ck_playerrank WHERE name = '%s';";
+char sql_stray_continentGetPlayerContinentByName[]	= "SELECT continentCode FROM ck_playerrank WHERE name = '%s' AND style = %i;";
+char sql_stray_continentTop[]						= "SELECT name,  points, style FROM ck_playerrank WHERE continentCode = '%s' AND style = %i ORDER BY points DESC LIMIT 100;";
+char sql_stray_continentNames[]						= "SELECT DISTINCT(continentCode) FROM ck_playerrank WHERE style = %i AND continentCode IS NOT NULL ORDER BY continentCode;";
+char sql_stray_viewPlayerRank[]						= "SELECT name, points, style FROM ck_playerrank WHERE style = %i AND points >= (SELECT points FROM ck_playerrank WHERE steamid = '%s' AND style = %i) ORDER BY points;";
+char sql_stray_getNextRankPoints[]					= "SELECT points FROM ck_playerrank WHERE style = %d ORDER BY points DESC LIMIT %d,1;";
+char sql_stray_viewPlayerInfo[]						= "SELECT steamid, steamid64, name, country, lastseen, joined, connections, timealive, timespec FROM ck_playerrank WHERE steamid = '%s';";
+char sql_stray_rankCommand[]						= "SELECT name, points FROM ck_playerrank WHERE style = 0 ORDER BY points DESC LIMIT %i, 1;";
+char sql_stray_rankCommandSelf[]					= "SELECT name, points FROM ck_playerrank WHERE steamid = '%s' AND style = 0;";
+char sql_stray_selectPlayerRankUnknown[]			= "SELECT steamid, name, points FROM ck_playerrank WHERE name LIKE '%c%s%c' ORDER BY points DESC LIMIT 0, 1;";
 
 // ck_playertimes
 char sql_stray_steamIdFromMapRank[]					= "SELECT steamid FROM ck_playertimes WHERE mapname = '%s' AND style = 0 AND runtimepro > -1.0 ORDER BY runtimepro ASC LIMIT %i, 1;";	 // paired with sql_stray_getRankSteamIdBonus[]
@@ -117,25 +134,8 @@ char sql_stray_deleteWipePlayerBonus[]				= "DELETE FROM ck_bonus WHERE steamid 
 
 // ck_playerrank
 char sql_stray_cleanupPlayerRank[]					= "DELETE FROM ck_playerrank WHERE `points` <= 0";	  // part of `db_Cleanup` will be implemented with other queries in 1 endpoint
-char sql_stray_getPlayerPointsByName[]				= "SELECT points FROM ck_playerrank WHERE name = '%s' AND style = %i;";
-char sql_stray_getPlayerCountryRank[]				= "SELECT COUNT(steamid) + 1 FROM ck_playerrank WHERE country = '%s' AND style = %i AND points > %i;";
 // char sql_stray_countryRankGetPlayerByName[]			= "SELECT * FROM ck_playerrank WHERE name = '%s';";  // merged with sql_stray_continentPlayerRankByName
-char sql_stray_countryRankPlayerCountryRankByName[] = "SELECT country FROM ck_playerrank WHERE name = '%s' AND style = %i;";
-char sql_stray_countryTop[]							= "SELECT name, country, points, style FROM ck_playerrank WHERE country = '%s' AND style = %i ORDER BY points DESC LIMIT 100;";
-char sql_stray_countryTopAllCountries[]				= "SELECT DISTINCT(country) FROM ck_playerrank WHERE style = %i ORDER BY country;";
-char sql_stray_specificContinentRank[]				= "SELECT COUNT(steamid) FROM ck_playerrank WHERE continentCode = '%s' AND style = %i;";
-char sql_stray_continentPlayerPoints[]				= "SELECT points FROM ck_playerrank WHERE name = '%s' AND style = %i;";
-char sql_stray_continentPlayerRank[]				= "SELECT COUNT(steamid) + 1 FROM ck_playerrank WHERE continentCode = '%s' AND style = %i AND points > %i;";
-char sql_stray_continentPlayerRankByName[]			= "SELECT * FROM ck_playerrank WHERE name = '%s';";
-char sql_stray_continentGetPlayerContinentByName[]	= "SELECT continentCode FROM ck_playerrank WHERE name = '%s' AND style = %i;";
-char sql_stray_continentTop[]						= "SELECT name,  points, style FROM ck_playerrank WHERE continentCode = '%s' AND style = %i ORDER BY points DESC LIMIT 100;";
-char sql_stray_continentNames[]						= "SELECT DISTINCT(continentCode) FROM ck_playerrank WHERE style = %i AND continentCode IS NOT NULL ORDER BY continentCode;";
-char sql_stray_viewPlayerRank[]						= "SELECT name, points, style FROM ck_playerrank WHERE style = %i AND points >= (SELECT points FROM ck_playerrank WHERE steamid = '%s' AND style = %i) ORDER BY points;";
-char sql_stray_getNextRankPoints[]					= "SELECT points FROM ck_playerrank WHERE style = %d ORDER BY points DESC LIMIT %d,1;";
-char sql_stray_viewPlayerInfo[]						= "SELECT steamid, steamid64, name, country, lastseen, joined, connections, timealive, timespec FROM ck_playerrank WHERE steamid = '%s';";
-char sql_stray_rankCommand[]						= "SELECT name, points FROM ck_playerrank WHERE style = 0 ORDER BY points DESC LIMIT %i, 1;";
-char sql_stray_rankCommandSelf[]					= "SELECT name, points FROM ck_playerrank WHERE steamid = '%s' AND style = 0;";
-char sql_stray_selectPlayerRankUnknown[]			= "SELECT steamid, name, points FROM ck_playerrank WHERE name LIKE '%c%s%c' ORDER BY points DESC LIMIT 0, 1;";
+// char sql_stray_continentPlayerPoints[]				= "SELECT points FROM ck_playerrank WHERE name = '%s' AND style = %i;"; // merged with sql_stray_getPlayerPointsByName[]
 
 /////////////////////////
 //  NOT DONE API SIDE  //
