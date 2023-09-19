@@ -741,7 +741,7 @@ public void parseColorsFromString(char[] ParseString, int size)
 	ReplaceString(ParseString, size, "{olive}", "", false);
 }
 
-public void checkSpawnPoints()
+public void checkSpawnPoints() // API'd up
 {
 	int tEnt, ctEnt;
 	float f_spawnLocation[3], f_spawnAngle[3];
@@ -749,85 +749,108 @@ public void checkSpawnPoints()
 	if (FindEntityByClassname(ctEnt, "info_player_counterterrorist") == -1 || FindEntityByClassname(tEnt, "info_player_terrorist") == -1) // No proper zones were found, try to recreate
 	{
 		// Check if spawn point has been added to the database with !addspawn
-		char szQuery[256];
-		Format(szQuery, sizeof(szQuery), sql_stray_getSpawnPoints, g_szMapName);
-		Handle query = SQL_Query(g_hDb, szQuery); // TODO: Threaded Query?
-		if (query == INVALID_HANDLE)
+		if (GetConVarBool(g_hSurfApiEnabled))
 		{
-			char szError[255];
-			SQL_GetError(g_hDb, szError, sizeof(szError));
-			PrintToServer("Failed to query map's spawn points (error: %s)", szError);
+			char apiRoute[512];
+			FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/selectSpawnLocations?mapname=%s", g_szApiHost, g_szMapName); 
+
+			DataPack dp = new DataPack();
+			dp.WriteString("db_selectSpawnLocations");
+			dp.WriteFloat(GetGameTime());
+
+			dp.Reset();
+
+			if (g_bApiDebug)
+			{
+				PrintToServer("API ROUTE: %s", apiRoute);
+			}
+
+			/* RipExt */
+			HTTPRequest request = new HTTPRequest(apiRoute);
+			request.Get(apiSelectSpawnLocationsCallback, dp);
 		}
 		else
 		{
-			if (SQL_HasResultSet(query) && SQL_FetchRow(query))
+			char szQuery[256];
+			Format(szQuery, sizeof(szQuery), sql_stray_getSpawnPoints, g_szMapName);
+			Handle query = SQL_Query(g_hDb, szQuery); // TODO: Threaded Query?
+			if (query == INVALID_HANDLE)
 			{
-				f_spawnLocation[0] = SQL_FetchFloat(query, 0);
-				f_spawnLocation[1] = SQL_FetchFloat(query, 1);
-				f_spawnLocation[2] = SQL_FetchFloat(query, 2);
-				f_spawnAngle[0] = SQL_FetchFloat(query, 3);
-				f_spawnAngle[1] = SQL_FetchFloat(query, 4);
-				f_spawnAngle[2] = SQL_FetchFloat(query, 5);
-			}
-			delete query;
-		}
-
-		if (f_spawnLocation[0] == 0.0 && f_spawnLocation[1] == 0.0 && f_spawnLocation[2] == 0.0) // No spawnpoint added to map with !addspawn, try to find spawns from map
-		{
-			PrintToServer("surftimer | No valid spawns found in the map.");
-			int zoneEnt = -1;
-			zoneEnt = FindEntityByClassname(zoneEnt, "info_player_teamspawn"); // CSS/TF spawn found
-
-			if (zoneEnt != -1)
-			{
-				GetEntPropVector(zoneEnt, Prop_Data, "m_angRotation", f_spawnAngle);
-				GetEntPropVector(zoneEnt, Prop_Send, "m_vecOrigin", f_spawnLocation);
-
-				PrintToServer("surftimer | Found info_player_teamspawn in location %f, %f, %f", f_spawnLocation[0], f_spawnLocation[1], f_spawnLocation[2]);
+				char szError[255];
+				SQL_GetError(g_hDb, szError, sizeof(szError));
+				PrintToServer("Failed to query map's spawn points (error: %s)", szError);
 			}
 			else
 			{
-				zoneEnt = FindEntityByClassname(zoneEnt, "info_player_start"); // Random spawn
+				if (SQL_HasResultSet(query) && SQL_FetchRow(query))
+				{
+					f_spawnLocation[0] = SQL_FetchFloat(query, 0);
+					f_spawnLocation[1] = SQL_FetchFloat(query, 1);
+					f_spawnLocation[2] = SQL_FetchFloat(query, 2);
+					f_spawnAngle[0] = SQL_FetchFloat(query, 3);
+					f_spawnAngle[1] = SQL_FetchFloat(query, 4);
+					f_spawnAngle[2] = SQL_FetchFloat(query, 5);
+				}
+				delete query;
+			}
+
+			if (f_spawnLocation[0] == 0.0 && f_spawnLocation[1] == 0.0 && f_spawnLocation[2] == 0.0) // No spawnpoint added to map with !addspawn, try to find spawns from map
+			{
+				PrintToServer("surftimer | No valid spawns found in the map.");
+				int zoneEnt = -1;
+				zoneEnt = FindEntityByClassname(zoneEnt, "info_player_teamspawn"); // CSS/TF spawn found
+
 				if (zoneEnt != -1)
 				{
 					GetEntPropVector(zoneEnt, Prop_Data, "m_angRotation", f_spawnAngle);
 					GetEntPropVector(zoneEnt, Prop_Send, "m_vecOrigin", f_spawnLocation);
 
-					PrintToServer("surftimer | Found info_player_start in location %f, %f, %f", f_spawnLocation[0], f_spawnLocation[1], f_spawnLocation[2]);
+					PrintToServer("surftimer | Found info_player_teamspawn in location %f, %f, %f", f_spawnLocation[0], f_spawnLocation[1], f_spawnLocation[2]);
 				}
 				else
 				{
-					PrintToServer("No valid spawn points found in the map! Record bots will not work. Try adding a spawn point with !addspawn");
-					return;
+					zoneEnt = FindEntityByClassname(zoneEnt, "info_player_start"); // Random spawn
+					if (zoneEnt != -1)
+					{
+						GetEntPropVector(zoneEnt, Prop_Data, "m_angRotation", f_spawnAngle);
+						GetEntPropVector(zoneEnt, Prop_Send, "m_vecOrigin", f_spawnLocation);
+
+						PrintToServer("surftimer | Found info_player_start in location %f, %f, %f", f_spawnLocation[0], f_spawnLocation[1], f_spawnLocation[2]);
+					}
+					else
+					{
+						PrintToServer("No valid spawn points found in the map! Record bots will not work. Try adding a spawn point with !addspawn");
+						return;
+					}
 				}
 			}
-		}
 
-		// Start creating new spawnpoints
-		int pointT, pointCT, count = 0;
-		while (count < 64)
-		{
-			pointT = CreateEntityByName("info_player_terrorist");
-			ActivateEntity(pointT);
-			pointCT = CreateEntityByName("info_player_counterterrorist");
-			ActivateEntity(pointCT);
-			if (IsValidEntity(pointT) && IsValidEntity(pointCT) && DispatchSpawn(pointT) && DispatchSpawn(pointCT))
+			// Start creating new spawnpoints
+			int pointT, pointCT, count = 0;
+			while (count < 64)
 			{
-				TeleportEntity(pointT, f_spawnLocation, f_spawnAngle, NULL_VECTOR);
-				TeleportEntity(pointCT, f_spawnLocation, f_spawnAngle, NULL_VECTOR);
-				count++;
-			}
-		}
-
-		// Remove possiblt bad spawns
-		char sClassName[128];
-		for (int i = 0; i < GetMaxEntities(); i++)
-		{
-			if (IsValidEdict(i) && IsValidEntity(i) && GetEdictClassname(i, sClassName, sizeof(sClassName)))
-			{
-				if (StrEqual(sClassName, "info_player_start") || StrEqual(sClassName, "info_player_teamspawn"))
+				pointT = CreateEntityByName("info_player_terrorist");
+				ActivateEntity(pointT);
+				pointCT = CreateEntityByName("info_player_counterterrorist");
+				ActivateEntity(pointCT);
+				if (IsValidEntity(pointT) && IsValidEntity(pointCT) && DispatchSpawn(pointT) && DispatchSpawn(pointCT))
 				{
-					RemoveEdict(i);
+					TeleportEntity(pointT, f_spawnLocation, f_spawnAngle, NULL_VECTOR);
+					TeleportEntity(pointCT, f_spawnLocation, f_spawnAngle, NULL_VECTOR);
+					count++;
+				}
+			}
+
+			// Remove possiblt bad spawns
+			char sClassName[128];
+			for (int i = 0; i < GetMaxEntities(); i++)
+			{
+				if (IsValidEdict(i) && IsValidEntity(i) && GetEdictClassname(i, sClassName, sizeof(sClassName)))
+				{
+					if (StrEqual(sClassName, "info_player_start") || StrEqual(sClassName, "info_player_teamspawn"))
+					{
+						RemoveEdict(i);
+					}
 				}
 			}
 		}

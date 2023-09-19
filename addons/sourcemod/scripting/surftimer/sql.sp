@@ -385,25 +385,109 @@ public void SQLTxn_WipePlayerFailed(Handle db, DataPack pack, int numQueries, co
 
 public void db_deleteSpawnLocations(int zGrp, int teleside)
 {
-	g_bGotSpawnLocation[zGrp][1][teleside] = false;
-	char szQuery[128];
-	Format(szQuery, sizeof(szQuery), sql_deleteSpawnLocations, g_szMapName, zGrp, teleside);
-	SQL_TQuery(g_hDb, SQL_CheckCallback, szQuery, _, DBPrio_Low);
+	if (GetConVarBool(g_hSurfApiEnabled))
+	{
+		char apiRoute[512];
+		FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/deleteSpawnLocations?mapname=%s&zonegroup=%i&teleside=%i", g_szApiHost, g_szMapName, zGrp, teleside);
+
+		if (g_bApiDebug)
+		{
+			PrintToServer("API URL: %s", apiRoute);
+		}
+
+		DataPack dp = new DataPack();
+		dp.WriteString("db_deleteSpawnLocations");
+		dp.WriteFloat(GetGameTime());
+		dp.Reset();
+
+		/* RipExt */
+		HTTPRequest request = new HTTPRequest(apiRoute);
+		request.Delete(apiDeleteCallback, dp);
+	}
+	else
+	{
+		g_bGotSpawnLocation[zGrp][1][teleside] = false;
+		char szQuery[128];
+		Format(szQuery, sizeof(szQuery), sql_deleteSpawnLocations, g_szMapName, zGrp, teleside);
+		SQL_TQuery(g_hDb, SQL_CheckCallback, szQuery, _, DBPrio_Low);
+	}
 }
 
 
-public void db_updateSpawnLocations(float position[3], float angle[3], float vel[3], int zGrp, int teleside)
+public void db_updateSpawnLocations(float position[3], float angle[3], float vel[3], int zGrp, int teleside) // API'd up
 {
-	char szQuery[512];
-	Format(szQuery, 512, sql_updateSpawnLocations, position[0], position[1], position[2], angle[0], angle[1], angle[2], vel[0], vel[1], vel[2], g_szMapName, zGrp, teleside);
-	SQL_TQuery(g_hDb, db_editSpawnLocationsCallback, szQuery, zGrp, DBPrio_Low);
+	if (GetConVarBool(g_hSurfApiEnabled))
+	{
+		char apiRoute[512], apiBody[1024];
+		FormatEx(apiBody, sizeof(apiBody), api_spawnLocationBody, g_szMapName, position[0], position[1], position[2], angle[0], angle[1], angle[2], vel[0], vel[1], vel[2], zGrp, teleside);
+
+		// Prepare API call body
+		JSONObject jsonObject;
+		jsonObject = JSONObject.FromString(apiBody);
+			
+		DataPack dp = new DataPack();
+		dp.WriteString("db_updateSpawnLocations");
+		dp.WriteFloat(GetGameTime());
+		dp.WriteCell(zGrp);
+		dp.Reset();
+
+		FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/insertSpawnLocations", g_szApiHost);
+		if (g_bApiDebug)
+		{
+			PrintToServer("API ROUTE: %s", apiRoute);
+			PrintToServer("API BODY: %s", apiBody);
+		}
+
+		/* RipExt - PUT */
+		HTTPRequest request = new HTTPRequest(apiRoute);
+		request.Put(jsonObject, apiPutCallback, dp);
+			
+		delete jsonObject;
+	}
+	else
+	{
+		char szQuery[512];
+		Format(szQuery, sizeof(szQuery), sql_updateSpawnLocations, position[0], position[1], position[2], angle[0], angle[1], angle[2], vel[0], vel[1], vel[2], g_szMapName, zGrp, teleside);
+		SQL_TQuery(g_hDb, db_editSpawnLocationsCallback, szQuery, zGrp, DBPrio_Low);
+	}
 }
 
-public void db_insertSpawnLocations(float position[3], float angle[3], float vel[3], int zGrp, int teleside)
+public void db_insertSpawnLocations(float position[3], float angle[3], float vel[3], int zGrp, int teleside) // API'd up
 {
-	char szQuery[512];
-	Format(szQuery, 512, sql_insertSpawnLocations, g_szMapName, position[0], position[1], position[2], angle[0], angle[1], angle[2], vel[0], vel[1], vel[2], zGrp, teleside);
-	SQL_TQuery(g_hDb, db_editSpawnLocationsCallback, szQuery, zGrp, DBPrio_Low);
+	if (GetConVarBool(g_hSurfApiEnabled))
+	{
+		char apiRoute[512], apiBody[1024];
+		FormatEx(apiBody, sizeof(apiBody), api_spawnLocationBody, g_szMapName, position[0], position[1], position[2], angle[0], angle[1], angle[2], vel[0], vel[1], vel[2], zGrp, teleside);
+			
+		// Prepare API call body
+		JSONObject jsonObject;
+		jsonObject = JSONObject.FromString(apiBody);
+			
+		DataPack dp = new DataPack();
+		dp.WriteString("db_insertSpawnLocations");
+		dp.WriteFloat(GetGameTime());
+		dp.WriteCell(zGrp);
+		dp.Reset();
+
+		FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/insertSpawnLocations", g_szApiHost);
+		if (g_bApiDebug)
+		{
+			PrintToServer("API ROUTE: %s", apiRoute);
+			PrintToServer("API BODY: %s", apiBody);
+		}
+
+		/* RipExt - POST */
+		HTTPRequest request = new HTTPRequest(apiRoute);
+		request.Post(jsonObject, apiPostCallback, dp);
+			
+		delete jsonObject;
+	}
+	else
+	{
+		char szQuery[512];
+		Format(szQuery, sizeof(szQuery), sql_insertSpawnLocations, g_szMapName, position[0], position[1], position[2], angle[0], angle[1], angle[2], vel[0], vel[1], vel[2], zGrp, teleside);
+		SQL_TQuery(g_hDb, db_editSpawnLocationsCallback, szQuery, zGrp, DBPrio_Low);
+	}
 }
 
 public void db_editSpawnLocationsCallback(Handle owner, Handle hndl, const char[] error, any data)
@@ -416,7 +500,7 @@ public void db_editSpawnLocationsCallback(Handle owner, Handle hndl, const char[
 	db_selectSpawnLocations();
 }
 
-public void db_selectSpawnLocations()
+public void db_selectSpawnLocations() // API'd up
 {
 	for (int s = 0; s < CPLIMIT; s++)
 	{
@@ -427,9 +511,32 @@ public void db_selectSpawnLocations()
 		}
 	}
 
-	char szQuery[254];
-	Format(szQuery, 254, sql_selectSpawnLocations, g_szMapName);
-	SQL_TQuery(g_hDb, db_selectSpawnLocationsCallback, szQuery, GetGameTime(), DBPrio_Low);
+	if (GetConVarBool(g_hSurfApiEnabled))
+	{
+		char apiRoute[512];
+		FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/selectSpawnLocations?mapname=%s", g_szApiHost, g_szMapName); 
+
+		DataPack dp = new DataPack();
+		dp.WriteString("db_selectSpawnLocations");
+		dp.WriteFloat(GetGameTime());
+
+		dp.Reset();
+
+		if (g_bApiDebug)
+		{
+			PrintToServer("API ROUTE: %s", apiRoute);
+		}
+
+		/* RipExt */
+		HTTPRequest request = new HTTPRequest(apiRoute);
+		request.Get(apiSelectSpawnLocationsCallback, dp);
+	}
+	else
+	{
+		char szQuery[254];
+		Format(szQuery, sizeof(szQuery), sql_selectSpawnLocations, g_szMapName);
+		SQL_TQuery(g_hDb, db_selectSpawnLocationsCallback, szQuery, GetGameTime(), DBPrio_Low);
+	}
 }
 
 public void db_selectSpawnLocationsCallback(Handle owner, Handle hndl, const char[] error, float time)
@@ -636,7 +743,10 @@ public void RecalcPlayerRank(int client, char steamid[128]) // API'd up
 			dp.WriteCell(client);
 			dp.Reset();
 
-			PrintToServer("API ROUTE: %s", apiRoute);
+			if (g_bApiDebug)
+			{
+				PrintToServer("API ROUTE: %s", apiRoute);
+			}
 
 			/* RipExt */
 			HTTPRequest request = new HTTPRequest(apiRoute);

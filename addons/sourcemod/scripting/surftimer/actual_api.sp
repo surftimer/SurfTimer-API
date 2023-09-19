@@ -79,6 +79,10 @@ public void apiPostCallback(HTTPResponse response, DataPack data)
 
 		db_viewCheckpointsinZoneGroup(client, g_szSteamID[client], g_szMapName, zonegrp);
 	}
+	else if (StrEqual(func, "db_insertSpawnLocations"))
+	{
+		db_selectSpawnLocations();
+	}
 
 	LogQueryTime("====== [Surf API] : Finished %s in: %f", func, GetGameTime() - fTime);
 	// Delete objects so we avoid memory leaks
@@ -241,6 +245,10 @@ public void apiPutCallback(HTTPResponse response, DataPack data)
 			CreateTimer(1.0, SetClanTag, client, TIMER_FLAG_NO_MAPCHANGE);
 		}
 	}
+	else if (StrEqual(func, "db_updateSpawnLocations"))
+	{
+		db_selectSpawnLocations();
+	}
 
 	LogQueryTime("====== [Surf API] : Finished %s in: %.4f", func, GetGameTime() - fTime);
 	delete data;
@@ -253,17 +261,17 @@ public void apiDeleteCallback(HTTPResponse response, DataPack data)
 	char func[128];
 	data.ReadString(func, sizeof(func));
 	float fTime = data.ReadFloat();
-	PrintToServer("[Surf API] Status (%s): %i", func, response.Status);
+	delete data;
 
-	if (response.Status != HTTPStatus_OK)
+	// PrintToServer("[Surf API - DELETE] Status (%s): %i", func, response.Status);
+	if (response.Status == HTTPStatus_NotModified)
 	{
-		delete data;
-		if (response.Status == HTTPStatus_NotModified)
-		{
-			LogError("[Surf API] Could not DELETE item. Status %i (%s)", response.Status, func);
-			return;
-		}
-		LogError("[Surf API] DELETE callback error. Status %i (%s)", response.Status, func);
+		LogError("[Surf API - DELETE] No items affected. Status %i (%s)", response.Status, func);
+		return;
+	}
+	else if (response.Status != HTTPStatus_OK)
+	{
+		LogError("[Surf API - DELETE] Callback error. Status %i (%s)", response.Status, func);
 		return;
 	}
 
@@ -281,7 +289,6 @@ public void apiDeleteCallback(HTTPResponse response, DataPack data)
 
 	// Delete objects so we avoid memory leaks
 	delete jsonObject;
-	delete data;
 	return;
 }
 
@@ -4186,6 +4193,154 @@ public void apiPlayerRankCommandCallback(HTTPResponse response, DataPack data)
 	LogQueryTime("====== [Surf API] : Finished %s in: %f", func, GetGameTime() - fTime);
 
 	return;
+}
+
+/* ck_spawnlocations */
+public void apiSelectSpawnLocationsCallback(HTTPResponse response, DataPack data)
+{
+	char func[128];
+	data.ReadString(func, sizeof(func));
+	float fTime = data.ReadFloat();
+	delete data;
+
+	if (!g_bServerDataLoaded)	 // will run before any error checking
+	{
+		db_GetDynamicTimelimit();
+	}
+
+	if (response.Status == HTTPStatus_NoContent)
+	{
+		LogQueryTime("[Surf API] No entries found (%s)", func);
+		return;
+	}
+	else if (response.Status != HTTPStatus_OK)
+	{
+		LogError("[Surf API] API Error %i (%s)", response.Status, func);
+		return;
+	}
+
+	JSONArray jsonArray = view_as<JSONArray>(response.Data);
+	for (int i = 0; i < jsonArray.Length; i++)
+	{
+		JSONObject jsonObject							= view_as<JSONObject>(jsonArray.Get(i));
+		int		   zonegroup							= jsonObject.GetInt("zonegroup");
+		int		   stage								= jsonObject.GetInt("stage");
+		int		   teleside								= jsonObject.GetInt("teleside");
+
+		g_bGotSpawnLocation[zonegroup][stage][teleside] = true;
+		g_fSpawnLocation[zonegroup][stage][teleside][0] = jsonObject.GetFloat("pos_x");
+		g_fSpawnLocation[zonegroup][stage][teleside][1] = jsonObject.GetFloat("pos_y");
+		g_fSpawnLocation[zonegroup][stage][teleside][2] = jsonObject.GetFloat("pos_z");
+		g_fSpawnAngle[zonegroup][stage][teleside][0]	= jsonObject.GetFloat("ang_x");
+		g_fSpawnAngle[zonegroup][stage][teleside][1]	= jsonObject.GetFloat("ang_y");
+		g_fSpawnAngle[zonegroup][stage][teleside][2]	= jsonObject.GetFloat("ang_z");
+		g_fSpawnVelocity[zonegroup][stage][teleside][0] = jsonObject.GetFloat("vel_x");
+		g_fSpawnVelocity[zonegroup][stage][teleside][1] = jsonObject.GetFloat("vel_y");
+		g_fSpawnVelocity[zonegroup][stage][teleside][2] = jsonObject.GetFloat("vel_z");
+
+		delete jsonObject;
+	}
+	delete jsonArray;
+
+	LogQueryTime("====== [Surf API] : Finished %s in: %f", func, GetGameTime() - fTime);
+}
+
+public void apiCheckSpawnpointsCallback(HTTPResponse response, DataPack data)
+{
+	char func[128];
+	data.ReadString(func, sizeof(func));
+	float fTime = data.ReadFloat();
+	delete data;
+
+	if (response.Status == HTTPStatus_NoContent)
+	{
+		LogQueryTime("[Surf API] No entries found (%s)", func);
+		return;
+	}
+	else if (response.Status != HTTPStatus_OK)
+	{
+		LogError("[Surf API] API Error %i (%s)", response.Status, func);
+		return;
+	}
+
+	JSONObject jsonObject = view_as<JSONObject>(response.Data);
+	float	   f_spawnLocation[3], f_spawnAngle[3];
+	if (g_bApiDebug)
+	{
+		char out[1024];
+		jsonObject.ToString(out, sizeof(out), JSON_DECODE_ANY);
+		PrintToServer("%s: %s", func, out);
+	}
+
+	f_spawnLocation[0] = jsonObject.GetFloat("pos_x");
+	f_spawnLocation[1] = jsonObject.GetFloat("pos_y");
+	f_spawnLocation[2] = jsonObject.GetFloat("pos_z");
+	f_spawnAngle[0]	   = jsonObject.GetFloat("ang_x");
+	f_spawnAngle[1]	   = jsonObject.GetFloat("ang_y");
+	f_spawnAngle[2]	   = jsonObject.GetFloat("ang_z");
+	delete jsonObject;
+
+	if (f_spawnLocation[0] == 0.0 && f_spawnLocation[1] == 0.0 && f_spawnLocation[2] == 0.0)	// No spawnpoint added to map with !addspawn, try to find spawns from map
+	{
+		PrintToServer("surftimer | No valid spawns found in the map.");
+		int zoneEnt = -1;
+		zoneEnt		= FindEntityByClassname(zoneEnt, "info_player_teamspawn");	  // CSS/TF spawn found
+
+		if (zoneEnt != -1)
+		{
+			GetEntPropVector(zoneEnt, Prop_Data, "m_angRotation", f_spawnAngle);
+			GetEntPropVector(zoneEnt, Prop_Send, "m_vecOrigin", f_spawnLocation);
+
+			PrintToServer("surftimer | Found info_player_teamspawn in location %f, %f, %f", f_spawnLocation[0], f_spawnLocation[1], f_spawnLocation[2]);
+		}
+		else
+		{
+			zoneEnt = FindEntityByClassname(zoneEnt, "info_player_start");	  // Random spawn
+			if (zoneEnt != -1)
+			{
+				GetEntPropVector(zoneEnt, Prop_Data, "m_angRotation", f_spawnAngle);
+				GetEntPropVector(zoneEnt, Prop_Send, "m_vecOrigin", f_spawnLocation);
+
+				PrintToServer("surftimer | Found info_player_start in location %f, %f, %f", f_spawnLocation[0], f_spawnLocation[1], f_spawnLocation[2]);
+			}
+			else
+			{
+				PrintToServer("No valid spawn points found in the map! Record bots will not work. Try adding a spawn point with !addspawn");
+				return;
+			}
+		}
+	}
+
+	// Start creating new spawnpoints
+	int pointT, pointCT, count = 0;
+	while (count < 64)
+	{
+		pointT = CreateEntityByName("info_player_terrorist");
+		ActivateEntity(pointT);
+		pointCT = CreateEntityByName("info_player_counterterrorist");
+		ActivateEntity(pointCT);
+		if (IsValidEntity(pointT) && IsValidEntity(pointCT) && DispatchSpawn(pointT) && DispatchSpawn(pointCT))
+		{
+			TeleportEntity(pointT, f_spawnLocation, f_spawnAngle, NULL_VECTOR);
+			TeleportEntity(pointCT, f_spawnLocation, f_spawnAngle, NULL_VECTOR);
+			count++;
+		}
+	}
+
+	// Remove possiblt bad spawns
+	char sClassName[128];
+	for (int i = 0; i < GetMaxEntities(); i++)
+	{
+		if (IsValidEdict(i) && IsValidEntity(i) && GetEdictClassname(i, sClassName, sizeof(sClassName)))
+		{
+			if (StrEqual(sClassName, "info_player_start") || StrEqual(sClassName, "info_player_teamspawn"))
+			{
+				RemoveEdict(i);
+			}
+		}
+	}
+
+	LogQueryTime("====== [Surf API] : Finished %s in: %f", func, GetGameTime() - fTime);
 }
 
 /* Player Points Calculation */
