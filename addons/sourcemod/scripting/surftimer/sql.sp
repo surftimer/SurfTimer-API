@@ -1824,9 +1824,8 @@ public void db_viewPlayerPointsCallback(Handle owner, Handle hndl, const char[] 
 		// Count players rank
 		if (IsValidClient(client))
 		{
-			db_GetPlayerRankAllStyles(client);
-			// for (int i = 0; i < MAX_STYLES; i++)
-				// db_GetPlayerRank(client, i);
+			for (int i = 0; i < MAX_STYLES; i++)
+				db_GetPlayerRank(client, i);
 		}
 	}
 	else
@@ -1890,9 +1889,16 @@ public void db_viewPlayerPointsCallback(Handle owner, Handle hndl, const char[] 
 			g_fTick[client][0] = GetGameTime();
 
 			// Count players rank
-			db_GetPlayerRankAllStyles(client);
-			// for (int i = 0; i < MAX_STYLES; i++)
-			// 	db_GetPlayerRank(client, i);
+			if (GetConVarBool(g_hSurfApiEnabled))
+			{
+				api_GetPlayerRankAllStyles(client);
+			}
+			else
+			{
+				for (int i = 0; i < MAX_STYLES; i++)
+					db_GetPlayerRank(client, i);
+			}
+
 		}
 	}
 }
@@ -1934,28 +1940,25 @@ public void db_GetPlayerRank(int client, int style) // API'd up
 }
 
 // Get the rank of the client in each style 
-public void db_GetPlayerRankAllStyles(int client) // API'd up
+public void api_GetPlayerRankAllStyles(int client) // API Only
 {
-	if (GetConVarBool(g_hSurfApiEnabled))
-	{
-		char apiRoute[512];
+	char apiRoute[512];
 			
-		DataPack dp = new DataPack();
-		dp.WriteString("db_GetPlayerRankAllStyles");
-		dp.WriteFloat(GetGameTime());
-		dp.WriteCell(client);
-		dp.Reset();
+	DataPack dp = new DataPack();
+	dp.WriteString("api_GetPlayerRankAllStyles");
+	dp.WriteFloat(GetGameTime());
+	dp.WriteCell(client);
+	dp.Reset();
 
-		FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/selectRankedPlayerRankAllStyles?steamid32=%s", g_szApiHost, g_szSteamID[client]);
-		if (g_bApiDebug)
-		{
-			PrintToServer("API ROUTE: %s", apiRoute);
-		}
-
-		/* RipExt - GET */
-		HTTPRequest request = new HTTPRequest(apiRoute);
-		request.Get(apiSelectRankedPlayersRankCallback, dp);
+	FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/selectRankedPlayerRankAllStyles?steamid32=%s", g_szApiHost, g_szSteamID[client]);
+	if (g_bApiDebug)
+	{
+		PrintToServer("API ROUTE: %s", apiRoute);
 	}
+
+	/* RipExt - GET */
+	HTTPRequest request = new HTTPRequest(apiRoute);
+	request.Get(apiSelectRankedPlayersRankCallback, dp);
 }
 
 public void sql_selectRankedPlayersRankCallback(Handle owner, Handle hndl, const char[] error, any pack)
@@ -5122,7 +5125,7 @@ public void db_viewMapRankBonus(int client, int zgroup, int type) // API'd up
 		WritePackCell(pack, zgroup);
 		WritePackCell(pack, type);
 
-		Format(szQuery, 1024, sql_selectPlayerRankBonus, g_szSteamID[client], g_szMapName, zgroup, g_szMapName, zgroup);
+		Format(szQuery, sizeof(szQuery), sql_selectPlayerRankBonus, g_szSteamID[client], g_szMapName, zgroup, g_szMapName, zgroup);
 		SQL_TQuery(g_hDb, db_viewMapRankBonusCallback, szQuery, pack, DBPrio_Low);
 	}
 }
@@ -5167,6 +5170,28 @@ public void db_viewMapRankBonusCallback(Handle owner, Handle hndl, const char[] 
 			PrintChatBonus(client, zgroup);
 		}
 	}
+}
+
+// Get all player bonus completion info for the map 
+public void api_viewPersonalBonusesInfo(int client, char szSteamId[32]) // API'd up
+{
+	char apiRoute[512];
+	FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/selectPersonalBonusesMap?mapname=%s&steamid32=%s", g_szApiHost, g_szMapName, szSteamId);
+			
+	DataPack dp = new DataPack();
+	dp.WriteString("api_viewPersonalBonusesInfo");
+	dp.WriteFloat(GetGameTime());
+	dp.WriteCell(client);
+	dp.Reset();
+
+	if (g_bApiDebug)
+	{
+		PrintToServer("API ROUTE: %s", apiRoute);
+	}
+
+	/* RipExt */
+	HTTPRequest request = new HTTPRequest(apiRoute);
+	request.Get(apiSelectPersonalBonusesObjectCallback, dp);
 }
 
 // Get player rank in bonus - current map

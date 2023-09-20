@@ -1516,6 +1516,111 @@ public void apiSelectPersonalBonusCallback(HTTPResponse response, DataPack data)
 	LogQueryTime("====== [Surf API] : Finished %s in: %f", func, GetGameTime() - fTime);
 }
 
+public void apiSelectPersonalBonusesObjectCallback(HTTPResponse response, DataPack data)
+{
+	char func[128], out[1024];
+	data.ReadString(func, sizeof(func));
+	float fTime	 = data.ReadFloat();
+	int	  client = data.ReadCell();
+	delete data;
+
+	for (int i = 0; i < MAXZONEGROUPS; i++)
+	{
+		g_fPersonalRecordBonus[i][client] = 0.0;
+		Format(g_szPersonalRecordBonus[i][client], 64, "N/A");
+		for (int s = 1; s < MAX_STYLES; s++)
+		{
+			g_fStylePersonalRecordBonus[s][i][client] = 0.0;
+			g_StyleMapRankBonus[s][i][client]		  = 9999999;
+			Format(g_szStylePersonalRecordBonus[s][i][client], sizeof(g_szStylePersonalRecordBonus), "N/A");
+		}
+	}
+
+	if (response.Status != HTTPStatus_OK)
+	{
+		if (!g_bSettingsLoaded[client])
+			LoadClientSetting(client, g_iSettingToLoad[client]);
+
+		if (response.Status == HTTPStatus_NoContent)
+		{
+			// LogQueryTime("[Surf API] No entries found (%s)", func);
+			return;
+		}
+
+		LogError("[Surf API] API Error %i (%s)", response.Status, func);
+		return;
+	}
+
+	// Indicate that the response contains a JSON array
+	JSONArray jsonArray = view_as<JSONArray>(response.Data);
+	if (jsonArray.Length <= 0)
+	{
+		// Array is empty stop here
+		LogError("[Surf API] API Returned empty array (%s)", func);
+		delete jsonArray;
+		return;
+	}
+
+	jsonArray.ToString(out, sizeof(out), JSON_DECODE_ANY);
+	// PrintToServer("%s: %s", func, out);
+
+	for (int i = 0; i < jsonArray.Length; i++)
+	{
+		JSONObject jsonObject = view_as<JSONObject>(jsonArray.Get(i));
+		float	   runTime	  = jsonObject.GetFloat("runtime");
+		int		   zgroup	  = jsonObject.GetInt("zonegroup");
+		int		   style	  = jsonObject.GetInt("style");
+		int		   rank		  = jsonObject.GetInt("rank");
+
+		if (style == 0)
+		{
+			g_MapRankBonus[zgroup][client]		   = rank;
+			g_fPersonalRecordBonus[zgroup][client] = runTime;
+
+			if (g_fPersonalRecordBonus[zgroup][client] > 0.0)
+			{
+				FormatTimeFloat(client, g_fPersonalRecordBonus[zgroup][client], 3, g_szPersonalRecordBonus[zgroup][client], sizeof(g_szPersonalRecordBonus));
+			}
+			else
+			{
+				Format(g_szPersonalRecordBonus[zgroup][client], sizeof(g_szPersonalRecordBonus), "N/A");
+				g_fPersonalRecordBonus[zgroup][client] = 0.0;
+			}
+		}
+		else
+		{
+			g_fStylePersonalRecordBonus[style][zgroup][client] = runTime;
+
+			if (g_fStylePersonalRecordBonus[style][zgroup][client] > 0.0)
+			{
+				FormatTimeFloat(client, g_fStylePersonalRecordBonus[style][zgroup][client], 3, g_szStylePersonalRecordBonus[style][zgroup][client], sizeof(g_szStylePersonalRecordBonus));
+				g_StyleMapRankBonus[style][zgroup][client] = rank;
+				// db_viewMapRankBonusStyle(client, zgroup, 0, style);
+			}
+			else
+			{
+				Format(g_szPersonalRecordBonus[zgroup][client], sizeof(g_szPersonalRecordBonus), "N/A");
+				g_fPersonalRecordBonus[zgroup][client] = 0.0;
+			}
+		}
+
+		delete jsonObject;
+	}
+
+	if (!g_bSettingsLoaded[client])
+	{
+		g_fTick[client][1] = GetGameTime();
+		float tick		   = g_fTick[client][1] - g_fTick[client][0];
+		LogQueryTime("[Surf API] %s: Finished %s in %fs", func, g_szSteamID[client], tick);
+		g_fTick[client][0] = GetGameTime();
+
+		LoadClientSetting(client, g_iSettingToLoad[client]);
+	}
+
+	delete jsonArray;
+	LogQueryTime("====== [Surf API] : Finished %s in: %f", func, GetGameTime() - fTime);
+}
+
 public void apiSelectPlayerRankBonus(HTTPResponse response, DataPack data)
 {
 	char func[128];
@@ -1572,14 +1677,6 @@ public void apiSelectPlayerRankBonus(HTTPResponse response, DataPack data)
 			PrintChatBonus(client, zgroup);
 		}
 	}
-
-	// for (int i = 0; i < jsonArray.Length; i++)
-	// {
-	// 	JSONObject jsonObject = view_as<JSONObject>(jsonArray.Get(i));
-	// 	char name[MAX_NAME_LENGTH];
-
-	// 	delete jsonObject;
-	// }
 
 	delete jsonArray;
 	LogQueryTime("====== [Surf API] : Finished %s in: %f", func, GetGameTime() - fTime);
@@ -2734,7 +2831,7 @@ public void apiSelectRankedPlayersRankCallback(HTTPResponse response, DataPack d
 
 		delete jsonArray;
 	}
-	if (StrEqual(func, "db_GetPlayerRankAllStyles"))	// Gets all styles rank in 1 call
+	if (StrEqual(func, "api_GetPlayerRankAllStyles"))	 // Gets all styles rank in 1 call
 	{
 		int client = data.ReadCell();
 
@@ -2814,7 +2911,7 @@ public void apiSelectRankedPlayersRankCallback(HTTPResponse response, DataPack d
 		{
 			g_fTick[client][1] = GetGameTime();
 			float tick		   = g_fTick[client][1] - g_fTick[client][0];
-			LogQueryTime("[Surf API] %s: Finished db_GetPlayerRankAllStyles in %fs", g_szSteamID[client], tick);
+			LogQueryTime("[Surf API] %s: Finished api_GetPlayerRankAllStyles in %fs", g_szSteamID[client], tick);
 			g_fTick[client][0] = GetGameTime();
 
 			LoadClientSetting(client, g_iSettingToLoad[client]);
@@ -3365,13 +3462,9 @@ public void apiSelectPlayerPointsCallback(HTTPResponse response, DataPack data)
 	// Count players rank
 	if (IsValidClient(client))
 	{
-		db_GetPlayerRankAllStyles(client);
-		// for (int i = 0; i < MAX_STYLES; i++)
-		// {
-		// 	db_GetPlayerRank(client, i);
-
-		// }
+		api_GetPlayerRankAllStyles(client);
 	}
+
 	delete jsonObject;
 	delete jsonArray;
 	LogQueryTime("====== [Surf API] : Finished %s in: %f", func, GetGameTime() - fTime);

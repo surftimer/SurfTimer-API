@@ -87,21 +87,43 @@ public void LoadClientSetting(int client, int setting)
 {
 	if (IsValidClient(client) && !IsFakeClient(client))
 	{
-		switch (setting)
+		if (GetConVarBool(g_hSurfApiEnabled))
 		{
-			case 0: db_viewPersonalRecords(client, g_szSteamID[client], g_szMapName);
-			case 1: db_viewPersonalBonusRecords(client, g_szSteamID[client]);
-			case 2: db_viewPersonalStageRecords(client, g_szSteamID[client]);
-			case 3: db_viewPersonalPrestrafeSpeeds(client, g_szSteamID[client]);
-			case 4: db_viewPlayerPoints(client);
-			case 5: db_viewPlayerOptions(client, g_szSteamID[client]);
-			case 6: db_CheckVIPAdmin(client, g_szSteamID[client]);
-			case 7: db_viewCustomTitles(client);
-			case 8: db_viewCheckpoints(client, g_szSteamID[client], g_szMapName);
-			case 9: db_LoadCCP(client);
-			case 10: db_viewPRinfo(client, g_szSteamID[client], g_szMapName);
-			default: db_viewPersonalRecords(client, g_szSteamID[client], g_szMapName);
+			switch (setting)
+			{
+				case 0: db_viewPersonalRecords(client, g_szSteamID[client], g_szMapName);
+				case 1: api_viewPersonalBonusesInfo(client, g_szSteamID[client]);
+				case 2: db_viewPersonalStageRecords(client, g_szSteamID[client]);
+				case 3: db_viewPersonalPrestrafeSpeeds(client, g_szSteamID[client]);
+				case 4: db_viewPlayerPoints(client);
+				case 5: db_viewPlayerOptions(client, g_szSteamID[client]);
+				case 6: db_CheckVIPAdmin(client, g_szSteamID[client]);
+				case 7: db_viewCustomTitles(client);
+				case 8: db_viewCheckpoints(client, g_szSteamID[client], g_szMapName);
+				case 9: db_LoadCCP(client);
+				case 10: db_viewPRinfo(client, g_szSteamID[client], g_szMapName);
+				default: db_viewPersonalRecords(client, g_szSteamID[client], g_szMapName);
+			}
 		}
+		else
+		{
+			switch (setting)
+			{
+				case 0: db_viewPersonalRecords(client, g_szSteamID[client], g_szMapName);
+				case 1: db_viewPersonalBonusRecords(client, g_szSteamID[client]);
+				case 2: db_viewPersonalStageRecords(client, g_szSteamID[client]);
+				case 3: db_viewPersonalPrestrafeSpeeds(client, g_szSteamID[client]);
+				case 4: db_viewPlayerPoints(client);
+				case 5: db_viewPlayerOptions(client, g_szSteamID[client]);
+				case 6: db_CheckVIPAdmin(client, g_szSteamID[client]);
+				case 7: db_viewCustomTitles(client);
+				case 8: db_viewCheckpoints(client, g_szSteamID[client], g_szMapName);
+				case 9: db_LoadCCP(client);
+				case 10: db_viewPRinfo(client, g_szSteamID[client], g_szMapName);
+				default: db_viewPersonalRecords(client, g_szSteamID[client], g_szMapName);
+			}
+		}
+
 		g_iSettingToLoad[client]++;
 	}
 }
