@@ -1823,8 +1823,11 @@ public void db_viewPlayerPointsCallback(Handle owner, Handle hndl, const char[] 
 		
 		// Count players rank
 		if (IsValidClient(client))
-			for (int i = 0; i < MAX_STYLES; i++)
-				db_GetPlayerRank(client, i);
+		{
+			db_GetPlayerRankAllStyles(client);
+			// for (int i = 0; i < MAX_STYLES; i++)
+				// db_GetPlayerRank(client, i);
+		}
 	}
 	else
 	{
@@ -1887,8 +1890,9 @@ public void db_viewPlayerPointsCallback(Handle owner, Handle hndl, const char[] 
 			g_fTick[client][0] = GetGameTime();
 
 			// Count players rank
-			for (int i = 0; i < MAX_STYLES; i++)
-				db_GetPlayerRank(client, i);
+			db_GetPlayerRankAllStyles(client);
+			// for (int i = 0; i < MAX_STYLES; i++)
+			// 	db_GetPlayerRank(client, i);
 		}
 	}
 }
@@ -1926,6 +1930,31 @@ public void db_GetPlayerRank(int client, int style) // API'd up
 		char szQuery[512];
 		Format(szQuery, sizeof(szQuery), sql_selectRankedPlayersRank, style, g_szSteamID[client], style);
 		SQL_TQuery(g_hDb, sql_selectRankedPlayersRankCallback, szQuery, pack, DBPrio_Low);
+	}
+}
+
+// Get the rank of the client in each style 
+public void db_GetPlayerRankAllStyles(int client) // API'd up
+{
+	if (GetConVarBool(g_hSurfApiEnabled))
+	{
+		char apiRoute[512];
+			
+		DataPack dp = new DataPack();
+		dp.WriteString("db_GetPlayerRankAllStyles");
+		dp.WriteFloat(GetGameTime());
+		dp.WriteCell(client);
+		dp.Reset();
+
+		FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/selectRankedPlayerRankAllStyles?steamid32=%s", g_szApiHost, g_szSteamID[client]);
+		if (g_bApiDebug)
+		{
+			PrintToServer("API ROUTE: %s", apiRoute);
+		}
+
+		/* RipExt - GET */
+		HTTPRequest request = new HTTPRequest(apiRoute);
+		request.Get(apiSelectRankedPlayersRankCallback, dp);
 	}
 }
 

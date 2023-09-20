@@ -1011,7 +1011,7 @@ public void apiSelectCheckpointsInZonegroupCallback(HTTPResponse response, DataP
 	{
 		if (response.Status == HTTPStatus_NoContent)
 		{
-			LogQueryTime("[Surf API] No entries found (%s)", func);
+			// LogQueryTime("[Surf API] No entries found (%s)", func);
 			g_bCheckpointsFound[zonegrp][client] = false;
 			return;
 		}
@@ -1065,7 +1065,7 @@ public void apiSelectRecordCheckpointCallback(HTTPResponse response, DataPack da
 
 		if (response.Status == HTTPStatus_NoContent)
 		{
-			LogQueryTime("[Surf API] No entries found (%s)", func);
+			// LogQueryTime("[Surf API] No entries found (%s)", func);
 			return;
 		}
 
@@ -1122,7 +1122,7 @@ public void apiSelectStageTimesCallback(HTTPResponse response, DataPack data)
 	{
 		if (response.Status == HTTPStatus_NoContent)
 		{
-			LogQueryTime("[Surf API] No entries found (%s)", func);
+			// LogQueryTime("[Surf API] No entries found (%s)", func);
 			return;
 		}
 		if (!g_bSettingsLoaded[client])
@@ -1179,7 +1179,7 @@ public void apiSelectStageAttemptsCallback(HTTPResponse response, DataPack data)
 	{
 		if (response.Status == HTTPStatus_NoContent)
 		{
-			LogQueryTime("[Surf API] No entries found (%s)", func);
+			// LogQueryTime("[Surf API] No entries found (%s)", func);
 			return;
 		}
 		if (!g_bSettingsLoaded[client])
@@ -1376,7 +1376,7 @@ public void apiSelectBonusTotalCountCallback(HTTPResponse response, DataPack dat
 
 		if (response.Status == HTTPStatus_NoContent)
 		{
-			LogQueryTime("[Surf API] No entries found (%s)", func);
+			// LogQueryTime("[Surf API] No entries found (%s)", func);
 			return;
 		}
 		LogError("[Surf API] API Error %i (%s)", response.Status, func);
@@ -1447,7 +1447,7 @@ public void apiSelectPersonalBonusCallback(HTTPResponse response, DataPack data)
 
 		if (response.Status == HTTPStatus_NoContent)
 		{
-			LogQueryTime("[Surf API] No entries found (%s)", func);
+			// LogQueryTime("[Surf API] No entries found (%s)", func);
 			return;
 		}
 
@@ -1530,7 +1530,7 @@ public void apiSelectPlayerRankBonus(HTTPResponse response, DataPack data)
 	{
 		if (response.Status == HTTPStatus_NoContent)
 		{
-			LogQueryTime("[Surf API] No entries found (%s)", func);
+			// LogQueryTime("[Surf API] No entries found (%s)", func);
 			return;
 		}
 
@@ -1601,7 +1601,7 @@ public void apiSelectFastestBonusCallback(HTTPResponse response, DataPack data)
 
 		if (response.Status == HTTPStatus_NoContent)
 		{
-			LogQueryTime("[Surf API] No entries found (%s)", func);
+			// LogQueryTime("[Surf API] No entries found (%s)", func);
 			return;
 		}
 
@@ -1712,7 +1712,7 @@ public void apiSelectAllBonusTimesInMapCallback(HTTPResponse response, DataPack 
 
 		if (response.Status == HTTPStatus_NoContent)
 		{
-			LogQueryTime("[Surf API] No entries found (%s)", func);
+			// LogQueryTime("[Surf API] No entries found (%s)", func);
 			return;
 		}
 		LogError("[Surf API] API Error %i (%s)", response.Status, func);
@@ -1777,7 +1777,7 @@ public void apiSelectBonusTopSurfersCallback(HTTPResponse response, DataPack dat
 	{
 		if (response.Status == HTTPStatus_NoContent)
 		{
-			LogQueryTime("[Surf API] No entries found (%s)", func);
+			// LogQueryTime("[Surf API] No entries found (%s)", func);
 			return;
 		}
 		LogError("[Surf API] API Error %i (%s)", response.Status, func);
@@ -1870,7 +1870,7 @@ public void apiSelectPlayerSpecificBonusDataCallback(HTTPResponse response, Data
 		if (response.Status == HTTPStatus_NoContent)
 		{
 			CPrintToChat(client, "%t", "SQL28", g_szChatPrefix);
-			LogQueryTime("[Surf API] No entries found (%s)", func);
+			// LogQueryTime("[Surf API] No entries found (%s)", func);
 			return;
 		}
 		LogError("[Surf API] API Error %i (%s)", response.Status, func);
@@ -1929,7 +1929,7 @@ public void apiSelectTotalBonusCompletesCallback(HTTPResponse response, DataPack
 		delete data;
 		if (response.Status == HTTPStatus_NoContent)
 		{
-			LogQueryTime("[Surf API] No entries found (%s)", func);
+			// LogQueryTime("[Surf API] No entries found (%s)", func);
 			return;
 		}
 		LogError("[Surf API] API Error %i (%s)", response.Status, func);
@@ -1979,7 +1979,7 @@ public void apiSelectPlayersBonusRankCallback(HTTPResponse response, DataPack da
 	{
 		if (response.Status == HTTPStatus_NoContent)
 		{
-			LogQueryTime("[Surf API] No entries found (%s)", func);
+			// LogQueryTime("[Surf API] No entries found (%s)", func);
 			return;
 		}
 		LogError("[Surf API] API Error %i (%s)", response.Status, func);
@@ -2523,7 +2523,7 @@ public void apiSelectPlayerNameCallback(HTTPResponse response, DataPack data)
 		if (response.Status == HTTPStatus_NoContent)
 		{
 			PrintToConsole(client, "SteamID %s not found.", g_pr_szSteamID[clientid]);
-			LogQueryTime("[Surf API] No entries found (%s)", func);
+			// LogQueryTime("[Surf API] No entries found (%s)", func);
 			return;
 		}
 		LogError("[Surf API] API Error %i (%s)", response.Status, func);
@@ -2562,7 +2562,7 @@ public void apiSelectTop100PlayersCallback(HTTPResponse response, DataPack data)
 	{
 		if (response.Status == HTTPStatus_NoContent)
 		{
-			LogQueryTime("[Surf API] No entries found (%s)", func);
+			// LogQueryTime("[Surf API] No entries found (%s)", func);
 			return;
 		}
 		LogError("[Surf API] API Error %i (%s)", response.Status, func);
@@ -2675,7 +2675,7 @@ public void apiSelectRankedPlayersRankCallback(HTTPResponse response, DataPack d
 
 			if (response.Status == HTTPStatus_NoContent)
 			{
-				LogQueryTime("[Surf API] No entries found (%s)", func);
+				// LogQueryTime("[Surf API] No entries found (%s)", func);
 				return;
 			}
 			LogError("[Surf API] API Error %i (%s)", response.Status, func);
@@ -2734,6 +2734,94 @@ public void apiSelectRankedPlayersRankCallback(HTTPResponse response, DataPack d
 
 		delete jsonArray;
 	}
+	if (StrEqual(func, "db_GetPlayerRankAllStyles"))	// Gets all styles rank in 1 call
+	{
+		int client = data.ReadCell();
+
+		delete data;
+
+		if (!IsValidClient(client))
+		{
+			return;
+		}
+
+		if (response.Status == HTTPStatus_NoContent)
+		{
+			// LogQueryTime("[Surf API] No entries found (%s)", func);
+			return;
+		}
+		else if (response.Status != HTTPStatus_OK)
+		{
+			if (!g_bSettingsLoaded[client])
+				LoadClientSetting(client, g_iSettingToLoad[client]);
+
+			LogError("[Surf API] API Error %i (%s)", response.Status, func);
+			return;
+		}
+
+		// Indicate that the response contains a JSON array
+		JSONArray jsonArray = view_as<JSONArray>(response.Data);
+		for (int i = 0; i < jsonArray.Length; i++)
+		{
+			JSONObject jsonObject	= view_as<JSONObject>(jsonArray.Get(i));
+			int		   rank			= jsonObject.GetInt("rank");
+			g_PlayerRank[client][i] = rank;
+			delete jsonObject;
+			if (i == 0 && GetConVarInt(g_hPrestigeRank) > 0 && !g_bPrestigeCheck[client])
+			{
+				KickClient(client, "You must be at least rank %i to join this server", GetConVarInt(g_hPrestigeRank));
+				delete jsonArray;
+				return;
+			}
+
+			if (GetConVarInt(g_hPrestigeRank) > 0)
+			{
+				if (GetConVarBool(g_hPrestigeStyles) && !g_bPrestigeAvoid[client])
+				{
+					if (i == 0)
+					{
+						if (g_PlayerRank[client][0] >= GetConVarInt(g_hPrestigeRank) && !g_bPrestigeCheck[client])
+							KickClient(client, "You must be at least rank %i to join this server", GetConVarInt(g_hPrestigeRank));
+					}
+
+					if (i == MAX_STYLES && !g_bPrestigeCheck[client])
+						KickClient(client, "You must be at least rank %i to join this server", GetConVarInt(g_hPrestigeRank));
+				}
+				else
+				{
+					if (g_PlayerRank[client][0] <= GetConVarInt(g_hPrestigeRank) || g_bPrestigeCheck[client])
+						g_bPrestigeCheck[client] = true;
+					else if (!g_bPrestigeAvoid[client])
+						KickClient(client, "You must be at least rank %i to join this server", GetConVarInt(g_hPrestigeRank));
+				}
+			}
+
+			// Sort players by rank in scoreboard
+			if (i == 0)
+			{
+				if (g_pr_AllPlayers[i] < g_PlayerRank[client][i] || g_PlayerRank[client][i] == 0)
+					CS_SetClientContributionScore(client, -99999);
+				else
+					CS_SetClientContributionScore(client, -g_PlayerRank[client][i]);
+			}
+		}
+
+		// Custom Title Access
+		if (g_PlayerRank[client][0] <= 3 && g_PlayerRank[client][0] > 0)	// Rank 1-3
+			g_bCustomTitleAccess[client] = true;
+
+		if (!g_bSettingsLoaded[client])
+		{
+			g_fTick[client][1] = GetGameTime();
+			float tick		   = g_fTick[client][1] - g_fTick[client][0];
+			LogQueryTime("[Surf API] %s: Finished db_GetPlayerRankAllStyles in %fs", g_szSteamID[client], tick);
+			g_fTick[client][0] = GetGameTime();
+
+			LoadClientSetting(client, g_iSettingToLoad[client]);
+		}
+
+		delete jsonArray;
+	}
 	else if (StrEqual(func, "db_viewPlayerProfile") || StrEqual(func, "db_viewPlayerProfile-unknownPlayer"))
 	{
 		int	 client = data.ReadCell();
@@ -2746,7 +2834,7 @@ public void apiSelectRankedPlayersRankCallback(HTTPResponse response, DataPack d
 		{
 			if (response.Status == HTTPStatus_NoContent)
 			{
-				LogQueryTime("[Surf API] No entries found (%s)", func);
+				// LogQueryTime("[Surf API] No entries found (%s)", func);
 				return;
 			}
 			LogError("[Surf API] API Error %i (%s)", response.Status, func);
@@ -2796,7 +2884,7 @@ public void apiSelectRankedPlayersRankCallback(HTTPResponse response, DataPack d
 			if (response.Status == HTTPStatus_NoContent)
 			{
 				CPrintToChat(client, "%t", "SQLTwo7", g_szChatPrefix);
-				LogQueryTime("[Surf API] No entries found (%s)", func);
+				// LogQueryTime("[Surf API] No entries found (%s)", func);
 				return;
 			}
 			LogError("[Surf API] API Error %i (%s)", response.Status, func);
@@ -2842,7 +2930,7 @@ public void apiSelectRankedPlayersRankCallback(HTTPResponse response, DataPack d
 		{
 			if (response.Status == HTTPStatus_NoContent)
 			{
-				LogQueryTime("[Surf API] No entries found (%s)", func);
+				// LogQueryTime("[Surf API] No entries found (%s)", func);
 				return;
 			}
 			LogError("[Surf API] API Error %i (%s)", response.Status, func);
@@ -2882,9 +2970,11 @@ public void apiSelectPlayerProfileCallback(HTTPResponse response, DataPack data)
 
 	if (response.Status != HTTPStatus_OK)
 	{
+		delete data;
+
 		if (response.Status == HTTPStatus_NoContent)
 		{
-			LogQueryTime("[Surf API] No entries found (%s)", func);
+			// LogQueryTime("[Surf API] No entries found (%s)", func);
 			return;
 		}
 		LogError("[Surf API] API Error %i (%s)", response.Status, func);
@@ -3036,7 +3126,7 @@ public void apiSelectRankedPlayersCallback(HTTPResponse response, DataPack data)
 	{
 		if (response.Status == HTTPStatus_NoContent)
 		{
-			LogQueryTime("[Surf API] No entries found (%s)", func);
+			// LogQueryTime("[Surf API] No entries found (%s)", func);
 			return;
 		}
 		LogError("[Surf API] API Error %i (%s)", response.Status, func);
@@ -3145,7 +3235,7 @@ public void apiSelectCountPlayersCallback(HTTPResponse response, DataPack data)
 			if (response.Status == HTTPStatus_NoContent)
 			{
 				g_pr_AllPlayers[style] = 1;
-				LogQueryTime("[Surf API] No entries found (%s)", func);
+				// LogQueryTime("[Surf API] No entries found (%s)", func);
 				return;
 			}
 			LogError("[Surf API] API Error %i (%s)", response.Status, func);
@@ -3173,7 +3263,7 @@ public void apiSelectCountPlayersCallback(HTTPResponse response, DataPack data)
 			if (response.Status == HTTPStatus_NoContent)
 			{
 				g_pr_AllPlayers[style] = 1;
-				LogQueryTime("[Surf API] No entries found (%s)", func);
+				// LogQueryTime("[Surf API] No entries found (%s)", func);
 				return;
 			}
 			LogError("[Surf API] API Error %i (%s)", response.Status, func);
@@ -3210,7 +3300,7 @@ public void apiSelectPlayerPointsCallback(HTTPResponse response, DataPack data)
 
 		if (response.Status == HTTPStatus_NoContent)
 		{
-			LogQueryTime("[Surf API] No entries found (%s)", func);
+			// LogQueryTime("[Surf API] No entries found (%s)", func);
 			return;
 		}
 		LogError("[Surf API] API Error %i (%s)", response.Status, func);
@@ -3275,10 +3365,12 @@ public void apiSelectPlayerPointsCallback(HTTPResponse response, DataPack data)
 	// Count players rank
 	if (IsValidClient(client))
 	{
-		for (int i = 0; i < MAX_STYLES; i++)
-		{
-			db_GetPlayerRank(client, i);
-		}
+		db_GetPlayerRankAllStyles(client);
+		// for (int i = 0; i < MAX_STYLES; i++)
+		// {
+		// 	db_GetPlayerRank(client, i);
+
+		// }
 	}
 	delete jsonObject;
 	delete jsonArray;
@@ -3300,7 +3392,7 @@ public void apiSelectCountryRankCallback(HTTPResponse response, DataPack data)
 
 	if (response.Status == HTTPStatus_NoContent)
 	{
-		LogQueryTime("[Surf API] No entries found (%s)", func);
+		// LogQueryTime("[Surf API] No entries found (%s)", func);
 		return;
 	}
 	else if (response.Status != HTTPStatus_OK)
@@ -3330,7 +3422,7 @@ public void apiSelectPlayerPointsByNameCallback(HTTPResponse response, DataPack 
 	if (response.Status == HTTPStatus_NoContent)
 	{
 		CPrintToChat(client, "%t", "Player_Data_Not_Found", g_szChatPrefix);
-		LogQueryTime("[Surf API] No entries found (%s)", func);
+		// LogQueryTime("[Surf API] No entries found (%s)", func);
 		return;
 	}
 	else if (response.Status != HTTPStatus_OK)
@@ -3388,7 +3480,7 @@ public void apiSelectPlayerCountryRankCallback(HTTPResponse response, DataPack d
 
 	if (response.Status == HTTPStatus_NoContent)
 	{
-		LogQueryTime("[Surf API] No entries found (%s)", func);
+		// LogQueryTime("[Surf API] No entries found (%s)", func);
 		return;
 	}
 	else if (response.Status != HTTPStatus_OK)
@@ -3425,7 +3517,7 @@ public void apiSelectPlayerCountryByNameCallback(HTTPResponse response, DataPack
 	if (response.Status == HTTPStatus_NoContent)
 	{
 		CPrintToChat(client, "%t", "Player_Data_Not_Found", g_szChatPrefix);
-		LogQueryTime("[Surf API] No entries found (%s)", func);
+		// LogQueryTime("[Surf API] No entries found (%s)", func);
 		return;
 	}
 	else if (response.Status != HTTPStatus_OK)
@@ -3474,7 +3566,7 @@ public void apiSelectCountryTopCallback(HTTPResponse response, DataPack data)
 		SetMenuExitBackButton(menu, true);
 		DisplayMenu(menu, client, MENU_TIME_FOREVER);
 
-		LogQueryTime("[Surf API] No entries found (%s)", func);
+		// LogQueryTime("[Surf API] No entries found (%s)", func);
 		return;
 	}
 	else if (response.Status != HTTPStatus_OK)
@@ -3569,7 +3661,7 @@ public void apiSelectAllCountriesCallback(HTTPResponse response, DataPack data)
 		SetMenuExitBackButton(menu, true);
 		DisplayMenu(menu, client, MENU_TIME_FOREVER);
 
-		LogQueryTime("[Surf API] No entries found (%s)", func);
+		// LogQueryTime("[Surf API] No entries found (%s)", func);
 		delete menu;
 		return;
 	}
@@ -3633,7 +3725,7 @@ public void apiSelectContinentRankCallback(HTTPResponse response, DataPack data)
 
 	if (response.Status == HTTPStatus_NoContent)
 	{
-		LogQueryTime("[Surf API] No entries found (%s)", func);
+		// LogQueryTime("[Surf API] No entries found (%s)", func);
 		return;
 	}
 	else if (response.Status != HTTPStatus_OK)
@@ -3667,7 +3759,7 @@ public void apiSelectContinentPlayerRankCallback(HTTPResponse response, DataPack
 
 	if (response.Status == HTTPStatus_NoContent)
 	{
-		LogQueryTime("[Surf API] No entries found (%s)", func);
+		// LogQueryTime("[Surf API] No entries found (%s)", func);
 		return;
 	}
 	else if (response.Status != HTTPStatus_OK)
@@ -3703,7 +3795,7 @@ public void apiSelectContinentPlayerRankByNameCallback(HTTPResponse response, Da
 	{
 		CPrintToChat(client, "%t", "PlayerNotFound", g_szChatPrefix, szPlayerName);
 
-		LogQueryTime("[Surf API] No entries found (%s)", func);
+		// LogQueryTime("[Surf API] No entries found (%s)", func);
 		return;
 	}
 	else if (response.Status != HTTPStatus_OK)
@@ -3743,7 +3835,7 @@ public void apiSelectPlayerContinentByNameCallback(HTTPResponse response, DataPa
 	{
 		CPrintToChat(client, "%t", "Player_Data_Not_Found", g_szChatPrefix);
 
-		LogQueryTime("[Surf API] No entries found (%s)", func);
+		// LogQueryTime("[Surf API] No entries found (%s)", func);
 		return;
 	}
 	else if (response.Status != HTTPStatus_OK)
@@ -3785,7 +3877,7 @@ public void apiSelectContinentTopCallback(HTTPResponse response, DataPack data)
 		SetMenuExitBackButton(menu, true);
 		DisplayMenu(menu, client, MENU_TIME_FOREVER);
 
-		LogQueryTime("[Surf API] No entries found (%s)", func);
+		// LogQueryTime("[Surf API] No entries found (%s)", func);
 		return;
 	}
 	else if (response.Status != HTTPStatus_OK)
@@ -3877,7 +3969,7 @@ public void apiSelectAllContinentsCallback(HTTPResponse response, DataPack data)
 		SetMenuExitBackButton(menu, true);
 		DisplayMenu(menu, client, MENU_TIME_FOREVER);
 
-		LogQueryTime("[Surf API] No entries found (%s)", func);
+		// LogQueryTime("[Surf API] No entries found (%s)", func);
 		delete menu;
 		return;
 	}
@@ -3943,7 +4035,7 @@ public void apiSelectPlayerRankCallback(HTTPResponse response, DataPack data)
 
 	if (response.Status == HTTPStatus_NoContent)
 	{
-		LogQueryTime("[Surf API] No entries found (%s)", func);
+		// LogQueryTime("[Surf API] No entries found (%s)", func);
 		delete menu;
 		return;
 	}
@@ -4058,7 +4150,7 @@ public void apiSelectNextRankPointsCallback(HTTPResponse response, DataPack data
 
 	if (response.Status == HTTPStatus_NoContent)
 	{
-		LogQueryTime("[Surf API] No entries found (%s)", func);
+		// LogQueryTime("[Surf API] No entries found (%s)", func);
 		return;
 	}
 	else if (response.Status != HTTPStatus_OK)
@@ -4093,7 +4185,7 @@ public void apiViewPlayerInfoCallback(HTTPResponse response, DataPack data)
 			CPrintToChat(client, "%t", "PlayerNotFound", g_szChatPrefix, g_szProfileName[client]);
 		}
 
-		LogQueryTime("[Surf API] No entries found (%s)", func);
+		// LogQueryTime("[Surf API] No entries found (%s)", func);
 		return;
 	}
 	else if (response.Status != HTTPStatus_OK)
@@ -4161,7 +4253,7 @@ public void apiPlayerRankCommandCallback(HTTPResponse response, DataPack data)
 	{
 		CPrintToChat(client, "%t", "SQLTwo7", g_szChatPrefix);
 
-		LogQueryTime("[Surf API] No entries found (%s)", func);
+		// LogQueryTime("[Surf API] No entries found (%s)", func);
 		return;
 	}
 	else if (response.Status != HTTPStatus_OK)
@@ -4210,7 +4302,7 @@ public void apiSelectSpawnLocationsCallback(HTTPResponse response, DataPack data
 
 	if (response.Status == HTTPStatus_NoContent)
 	{
-		LogQueryTime("[Surf API] No entries found (%s)", func);
+		// LogQueryTime("[Surf API] No entries found (%s)", func);
 		return;
 	}
 	else if (response.Status != HTTPStatus_OK)
@@ -4254,7 +4346,7 @@ public void apiCheckSpawnpointsCallback(HTTPResponse response, DataPack data)
 
 	if (response.Status == HTTPStatus_NoContent)
 	{
-		LogQueryTime("[Surf API] No entries found (%s)", func);
+		// LogQueryTime("[Surf API] No entries found (%s)", func);
 		return;
 	}
 	else if (response.Status != HTTPStatus_OK)
@@ -4360,7 +4452,7 @@ public void apiSelectReplayCheckpointTicksCallback(HTTPResponse response, DataPa
 			for (int j = 0; j < CPLIMIT; j++)
 				g_iCPStartFrame[i][j] = 0;
 
-		LogQueryTime("[Surf API] No entries found (%s)", func);
+		// LogQueryTime("[Surf API] No entries found (%s)", func);
 		return;
 	}
 	else if (response.Status != HTTPStatus_OK)
@@ -4392,8 +4484,8 @@ public void apiSelectReplayCheckpointTicksCallback(HTTPResponse response, DataPa
 	if (!g_bServerDataLoaded)
 	{
 		g_fServerLoading[1] = GetGameTime();
-		g_bHasLatestID = true;
-		float time = g_fServerLoading[1] - g_fServerLoading[0];
+		g_bHasLatestID		= true;
+		float time			= g_fServerLoading[1] - g_fServerLoading[0];
 		LogQueryTime("====== [Surf API] : Finished loading server settings in: %f", time);
 		loadAllClientSettings();
 	}
@@ -4423,8 +4515,8 @@ public void apiCalculatePlayerPointsCallback(HTTPResponse response, DataPack dat
 
 	if (response.Status == HTTPStatus_NoContent)
 	{
-		LogQueryTime("[Surf API] No entries found (%s)", func);
-		// Players first time on server
+		// LogQueryTime("[Surf API] No entries found (%s)", func);
+		//  Players first time on server
 		if (client <= MaxClients)
 		{
 			g_pr_Calculating[client] = false;
@@ -4545,7 +4637,7 @@ public void apiCalculatePlayerPointsCountFinishedBonusCallback(HTTPResponse resp
 
 	if (response.Status == HTTPStatus_NoContent)
 	{
-		LogQueryTime("[Surf API] No entries found (%s)", func);
+		// LogQueryTime("[Surf API] No entries found (%s)", func);
 	}
 	else if (response.Status != HTTPStatus_OK)
 	{
@@ -4731,7 +4823,7 @@ public void apiCalculatePlayerPointsCountFinishedStagesCallback(HTTPResponse res
 
 	if (response.Status == HTTPStatus_NoContent)
 	{
-		LogQueryTime("[Surf API] No entries found (%s)", func);
+		// LogQueryTime("[Surf API] No entries found (%s)", func);
 	}
 	else if (response.Status != HTTPStatus_OK)
 	{
@@ -4814,7 +4906,7 @@ public void apiCalculatePlayerPointsCountFinishedMapsCallback(HTTPResponse respo
 
 	if (response.Status == HTTPStatus_NoContent)
 	{
-		LogQueryTime("[Surf API] No entries found (%s)", func);
+		// LogQueryTime("[Surf API] No entries found (%s)", func);
 	}
 	else if (response.Status != HTTPStatus_OK)
 	{
@@ -5188,8 +5280,8 @@ public void apiRecalculatePointsCallback(HTTPResponse response, DataPack data)
 
 	if (response.Status == HTTPStatus_NoContent)
 	{
-		LogQueryTime("[Surf API] No entries found (%s)", func);
-		// Players first time on server
+		// LogQueryTime("[Surf API] No entries found (%s)", func);
+		//  Players first time on server
 		if (client <= MaxClients)
 		{
 			g_pr_Calculating[client] = false;
