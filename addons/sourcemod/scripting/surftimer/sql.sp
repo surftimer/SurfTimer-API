@@ -1843,7 +1843,7 @@ public void db_viewPlayerPointsCallback(Handle owner, Handle hndl, const char[] 
 
 			char szSteamId64[64];
 			GetClientAuthId(client, AuthId_SteamID64, szSteamId64, MAX_NAME_LENGTH, true);
-			if (GetConVarBool(g_hSurfApiEnabled))
+			if (GetConVarBool(g_hSurfApiEnabled)) // We shouldn't really come into here in an SQL callback :?
 			{
 				char apiRoute[512], body[1024];
 						
@@ -1937,28 +1937,6 @@ public void db_GetPlayerRank(int client, int style) // API'd up
 		Format(szQuery, sizeof(szQuery), sql_selectRankedPlayersRank, style, g_szSteamID[client], style);
 		SQL_TQuery(g_hDb, sql_selectRankedPlayersRankCallback, szQuery, pack, DBPrio_Low);
 	}
-}
-
-// Get the rank of the client in each style 
-public void api_GetPlayerRankAllStyles(int client) // API Only
-{
-	char apiRoute[512];
-			
-	DataPack dp = new DataPack();
-	dp.WriteString("api_GetPlayerRankAllStyles");
-	dp.WriteFloat(GetGameTime());
-	dp.WriteCell(client);
-	dp.Reset();
-
-	FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/selectRankedPlayerRankAllStyles?steamid32=%s", g_szApiHost, g_szSteamID[client]);
-	if (g_bApiDebug)
-	{
-		PrintToServer("API ROUTE: %s", apiRoute);
-	}
-
-	/* RipExt - GET */
-	HTTPRequest request = new HTTPRequest(apiRoute);
-	request.Get(apiSelectRankedPlayersRankCallback, dp);
 }
 
 public void sql_selectRankedPlayersRankCallback(Handle owner, Handle hndl, const char[] error, any pack)
@@ -2443,16 +2421,38 @@ public void ContinueRecalc(int client)
 =           PLAYER TIMES           =
 ==================================*/
 
-public void db_GetMapRecord_Pro()
+public void db_GetMapRecord_Pro() // API'd up
 {
 	g_fRecordMapTime = 9999999.0;
 	for (int i = 1; i < MAX_STYLES; i++)
 		g_fRecordStyleMapTime[i] = 9999999.0;
 
-	char szQuery[512];
-	// SELECT MIN(runtimepro), name, steamid, style FROM ck_playertimes WHERE mapname = '%s' AND runtimepro > -1.0 GROUP BY style
-	Format(szQuery, 512, sql_selectMapRecord, g_szMapName);
-	SQL_TQuery(g_hDb, sql_selectMapRecordCallback, szQuery, GetGameTime(), DBPrio_Low);
+	if (GetConVarBool(g_hSurfApiEnabled))
+	{
+		char apiRoute[512];
+		FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/getMapInitData?mapname=%s", g_szApiHost, g_szMapName);
+
+		DataPack dp = new DataPack();
+		dp.WriteString("db_GetMapRecord_Pro");
+		dp.WriteFloat(GetGameTime());
+		dp.Reset();
+
+		if (g_bApiDebug)
+		{
+			PrintToServer("API ROUTE: %s", apiRoute);
+		}
+
+		/* RipExt */
+		HTTPRequest request = new HTTPRequest(apiRoute);
+		request.Get(apiSelectMapDataObjectCallback, dp);
+	}
+	else
+	{
+		char szQuery[512];
+		// SELECT MIN(runtimepro), name, steamid, style FROM ck_playertimes WHERE mapname = '%s' AND runtimepro > -1.0 GROUP BY style
+		Format(szQuery, sizeof(szQuery), sql_selectMapRecord, g_szMapName);
+		SQL_TQuery(g_hDb, sql_selectMapRecordCallback, szQuery, GetGameTime(), DBPrio_Low);
+	}
 }
 
 public void sql_selectMapRecordCallback(Handle owner, Handle hndl, const char[] error, float time)
@@ -3954,7 +3954,7 @@ public void SQL_LoadCCP_StageTimesCallback(Handle owner, Handle hndl, const char
 
 }
 
-public void db_LoadStageAttempts(int client) // API'd up
+public void db_LoadStageAttempts(int client) // API'd up - merged with db_LoadCCP_StageTimes
 {
 	if (GetConVarBool(g_hSurfApiEnabled))
 	{
@@ -4920,7 +4920,7 @@ public void db_selectMapTier() // API'd up
 	else
 	{
 		char szQuery[1024];
-		Format(szQuery, 1024, sql_selectMapTier, g_szMapName);
+		Format(szQuery, sizeof(szQuery), sql_selectMapTier, g_szMapName);
 		SQL_TQuery(g_hDb, SQL_selectMapTierCallback, szQuery, GetGameTime(), DBPrio_Low);
 	}
 }
@@ -5172,14 +5172,14 @@ public void db_viewMapRankBonusCallback(Handle owner, Handle hndl, const char[] 
 	}
 }
 
-// Get all player bonus completion info for the map 
-public void api_viewPersonalBonusesInfo(int client, char szSteamId[32]) // API'd up
+// Get all player data for the **map** and the **timer** - Bonuses, Checkpoints, Options, Points, more to come...
+public void api_viewPlayerObject(int client, char szSteamId[32]) // API'd up
 {
 	char apiRoute[512];
-	FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/selectPersonalBonusesMap?mapname=%s&steamid32=%s", g_szApiHost, g_szMapName, szSteamId);
+	FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/getPlayerInitData?mapname=%s&steamid32=%s", g_szApiHost, g_szMapName, szSteamId);
 			
 	DataPack dp = new DataPack();
-	dp.WriteString("api_viewPersonalBonusesInfo");
+	dp.WriteString("api_viewPlayerObject");
 	dp.WriteFloat(GetGameTime());
 	dp.WriteCell(client);
 	dp.Reset();
@@ -5191,7 +5191,7 @@ public void api_viewPersonalBonusesInfo(int client, char szSteamId[32]) // API'd
 
 	/* RipExt */
 	HTTPRequest request = new HTTPRequest(apiRoute);
-	request.Get(apiSelectPersonalBonusesObjectCallback, dp);
+	request.Get(apiSelectPlayerObjectCallback, dp);
 }
 
 // Get player rank in bonus - current map
@@ -5517,12 +5517,15 @@ public void db_insertBonus(int client, char szSteamId[32], char szUName[128], fl
 		char body[1024], apiRoute[512];
 		FormatEx(body, sizeof(body), api_insertBonus, szSteamId, szName, g_szMapName, FinalTime, zoneGrp, g_iPreStrafeBonus[0][zoneGrp][0][client], g_iPreStrafeBonus[1][zoneGrp][0][client], g_iPreStrafeBonus[2][zoneGrp][0][client]);
 		FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/insertBonus", g_szApiHost);
-
+		
+		if (g_bApiDebug)
+		{
+			PrintToServer("API URL: %s", apiRoute);
+			PrintToServer("API BODY: %s", body);
+		}
+		
 		JSONObject jsonObject;
-		jsonObject			= JSONObject.FromString(body);
-
-		PrintToServer("API URL: %s", apiRoute);
-		PrintToServer("API BODY: %s", body);
+		jsonObject = JSONObject.FromString(body);
 
 		DataPack dp = new DataPack();
 		dp.WriteString("db_insertBonus");
@@ -5579,18 +5582,25 @@ public void db_updateBonus(int client, char szSteamId[32], char szUName[128], fl
 		char apiRoute[512], body[1024];
 		
 		// Prepare API call body
+		FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/updateBonus", g_szApiHost);
 		FormatEx(body, sizeof(body), api_insertBonus, szSteamId, szName, g_szMapName, FinalTime, zoneGrp, g_iPreStrafeBonus[0][zoneGrp][0][client], g_iPreStrafeBonus[1][zoneGrp][0][client], g_iPreStrafeBonus[2][zoneGrp][0][client]);
+		
 		JSONObject jsonObject;
 		jsonObject = JSONObject.FromString(body);
 		
+		if (g_bApiDebug)
+		{
+			PrintToServer("API URL: %s", apiRoute);
+			PrintToServer("API BODY: %s", body);
+		}
+
 		DataPack dp = new DataPack();
 		dp.WriteString("db_updateBonus");
 		dp.WriteFloat(GetGameTime());
 		dp.WriteCell(client);
 		dp.WriteCell(zoneGrp);
 		dp.Reset();
-
-		FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/updateBonus", g_szApiHost);
+		
 		/* RipExt - PUT */
 		HTTPRequest request = new HTTPRequest(apiRoute);
 		request.Put(jsonObject, apiPutCallback, dp);
