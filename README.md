@@ -1,4 +1,8 @@
-# SurfTimer for CS:GO
+# I am not working on this and will most likely NOT work on this
+If someone wants to continue this, feel free it is *open-source* for a reason
+
+
+# SurfTimer for CS:GO using API calls instead of DB connection
 
 This is an open source timer plugin made for CS:GO.
 
