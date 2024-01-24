@@ -40,7 +40,6 @@
 
 #include "surftimer/globals.sp"
 #include "surftimer/db/queries.sp"
-#include "surftimer/api_funcs.sp"
 #include "surftimer/api.sp"
 #include "surftimer/convars.sp"
 #include "surftimer/misc.sp"
@@ -160,7 +159,7 @@ public void OnMapStart()
 	CreateTimer(30.0, EnableJoinMsgs, INVALID_HANDLE, TIMER_FLAG_NO_MAPCHANGE);
 
 	// Get mapname
-	GetCurrentMap(g_szMapName, sizeof(g_szMapName));
+	GetCurrentMap(g_szMapName, 128);
 
 	// Download map radar image if existing
 	AddRadarImages();
