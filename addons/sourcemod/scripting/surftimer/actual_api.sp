@@ -37,6 +37,7 @@ public void apiPostCallback(HTTPResponse response, DataPack data)
 		int zgroup = data.ReadCell();
 
 		db_viewMapRankBonus(client, zgroup, 1);
+		// api_viewPlayerObject(client, g_szSteamID[client]);
 		// Change to update profile timer, if giving multiplier count or extra points for bonuses
 		CalculatePlayerRank(client, 0);
 	}
@@ -68,9 +69,10 @@ public void apiPostCallback(HTTPResponse response, DataPack data)
 		g_iPlayTimeAlive[client] = 0;
 		g_iPlayTimeSpec[client]	 = 0;
 
-		// Count players rank
-		for (int i = 0; i < MAX_STYLES; i++)
-			db_GetPlayerRank(client, i);
+		api_GetPlayerRankAllStyles(client);
+		// // Count players rank
+		// for (int i = 0; i < MAX_STYLES; i++)
+		// 	db_GetPlayerRank(client, i);
 	}
 	else if (StrEqual(func, "db_InsertOrUpdateCheckpoints"))
 	{
@@ -435,35 +437,35 @@ public void apiSelectMapTierCallback(HTTPResponse response, DataPack data)
 		g_iMapTier	 = tier;
 		if (g_bMapperNameFound)
 		{
-			Format(g_sTierString, 512, "%c%s \x01by \x03%s %c- ", BLUE, g_szMapName, g_szMapperName, WHITE);
+			Format(g_sTierString, sizeof(g_sTierString), "%c%s \x01by \x03%s %c- ", BLUE, g_szMapName, g_szMapperName, WHITE);
 		}
 		else
 		{
-			Format(g_sTierString, 512, "%c%s %c- ", BLUE, g_szMapName, WHITE);
+			Format(g_sTierString, sizeof(g_sTierString), "%c%s %c- ", BLUE, g_szMapName, WHITE);
 		}
 
 		switch (tier)
 		{
-			case 1: Format(g_sTierString, 512, "%s%cTier %i %c- ", g_sTierString, GRAY, tier, WHITE);
-			case 2: Format(g_sTierString, 512, "%s%cTier %i %c- ", g_sTierString, LIGHTBLUE, tier, WHITE);
-			case 3: Format(g_sTierString, 512, "%s%cTier %i %c- ", g_sTierString, BLUE, tier, WHITE);
-			case 4: Format(g_sTierString, 512, "%s%cTier %i %c- ", g_sTierString, DARKBLUE, tier, WHITE);
-			case 5: Format(g_sTierString, 512, "%s%cTier %i %c- ", g_sTierString, RED, tier, WHITE);
-			case 6: Format(g_sTierString, 512, "%s%cTier %i %c- ", g_sTierString, DARKRED, tier, WHITE);
-			case 7: Format(g_sTierString, 512, "%s%cTier %i %c- ", g_sTierString, ORCHID, tier, WHITE);
-			case 8: Format(g_sTierString, 512, "%s%cTier %i %c- ", g_sTierString, PURPLE, tier, WHITE);
-			default: Format(g_sTierString, 512, "%s%cTier %i %c- ", g_sTierString, GRAY, tier, WHITE);
+			case 1: Format(g_sTierString, sizeof(g_sTierString), "%s%cTier %i %c- ", g_sTierString, GRAY, tier, WHITE);
+			case 2: Format(g_sTierString, sizeof(g_sTierString), "%s%cTier %i %c- ", g_sTierString, LIGHTBLUE, tier, WHITE);
+			case 3: Format(g_sTierString, sizeof(g_sTierString), "%s%cTier %i %c- ", g_sTierString, BLUE, tier, WHITE);
+			case 4: Format(g_sTierString, sizeof(g_sTierString), "%s%cTier %i %c- ", g_sTierString, DARKBLUE, tier, WHITE);
+			case 5: Format(g_sTierString, sizeof(g_sTierString), "%s%cTier %i %c- ", g_sTierString, RED, tier, WHITE);
+			case 6: Format(g_sTierString, sizeof(g_sTierString), "%s%cTier %i %c- ", g_sTierString, DARKRED, tier, WHITE);
+			case 7: Format(g_sTierString, sizeof(g_sTierString), "%s%cTier %i %c- ", g_sTierString, ORCHID, tier, WHITE);
+			case 8: Format(g_sTierString, sizeof(g_sTierString), "%s%cTier %i %c- ", g_sTierString, PURPLE, tier, WHITE);
+			default: Format(g_sTierString, sizeof(g_sTierString), "%s%cTier %i %c- ", g_sTierString, GRAY, tier, WHITE);
 		}
 		if (g_bhasStages)
-			Format(g_sTierString, 512, "%s%c%i Stages", g_sTierString, LIGHTGREEN, (g_mapZonesTypeCount[0][3] + 1));
+			Format(g_sTierString, sizeof(g_sTierString), "%s%c%i Stages", g_sTierString, LIGHTGREEN, (g_mapZonesTypeCount[0][3] + 1));
 		else
-			Format(g_sTierString, 512, "%s%cLinear", g_sTierString, LIMEGREEN);
+			Format(g_sTierString, sizeof(g_sTierString), "%s%cLinear", g_sTierString, LIMEGREEN);
 
 		if (g_bhasBonus)
 			if (g_mapZoneGroupCount > 2)
-				Format(g_sTierString, 512, "%s %c-%c %i Bonuses", g_sTierString, WHITE, ORANGE, (g_mapZoneGroupCount - 1));
+				Format(g_sTierString, sizeof(g_sTierString), "%s %c-%c %i Bonuses", g_sTierString, WHITE, ORANGE, (g_mapZoneGroupCount - 1));
 			else
-				Format(g_sTierString, 512, "%s %c-%c Bonus", g_sTierString, WHITE, ORANGE, (g_mapZoneGroupCount - 1));
+				Format(g_sTierString, sizeof(g_sTierString), "%s %c-%c Bonus", g_sTierString, WHITE, ORANGE, (g_mapZoneGroupCount - 1));
 	}
 
 	if (!g_bServerDataLoaded)
@@ -1152,15 +1154,18 @@ public void apiSelectStageTimesCallback(HTTPResponse response, DataPack data)
 
 	for (int i = 0; i < jsonArray.Length; i++)
 	{
-		JSONObject jsonObject				   = view_as<JSONObject>(jsonArray.Get(i));
-		int		   cp						   = jsonObject.GetInt("cp");
-		float	   time						   = jsonObject.GetFloat("stage_time");
-		g_fCCPStageTimesRecord[client][cp - 1] = time;
+		JSONObject jsonObject					  = view_as<JSONObject>(jsonArray.Get(i));
+		int		   cp							  = jsonObject.GetInt("cp");
+		float	   time							  = jsonObject.GetFloat("stage_time");
+		int		   attempts						  = jsonObject.GetInt("stage_attempts");
+
+		g_fCCPStageTimesRecord[client][cp - 1]	  = time;
+		g_iCCPStageAttemptsRecord[client][cp - 1] = attempts;
 
 		delete jsonObject;
 	}
 
-	db_LoadStageAttempts(client);
+	// db_LoadStageAttempts(client);
 
 	delete jsonArray;
 
@@ -1516,111 +1521,6 @@ public void apiSelectPersonalBonusCallback(HTTPResponse response, DataPack data)
 	LogQueryTime("====== [Surf API] : Finished %s in: %f", func, GetGameTime() - fTime);
 }
 
-public void apiSelectPersonalBonusesObjectCallback(HTTPResponse response, DataPack data)
-{
-	char func[128], out[1024];
-	data.ReadString(func, sizeof(func));
-	float fTime	 = data.ReadFloat();
-	int	  client = data.ReadCell();
-	delete data;
-
-	for (int i = 0; i < MAXZONEGROUPS; i++)
-	{
-		g_fPersonalRecordBonus[i][client] = 0.0;
-		Format(g_szPersonalRecordBonus[i][client], 64, "N/A");
-		for (int s = 1; s < MAX_STYLES; s++)
-		{
-			g_fStylePersonalRecordBonus[s][i][client] = 0.0;
-			g_StyleMapRankBonus[s][i][client]		  = 9999999;
-			Format(g_szStylePersonalRecordBonus[s][i][client], sizeof(g_szStylePersonalRecordBonus), "N/A");
-		}
-	}
-
-	if (response.Status != HTTPStatus_OK)
-	{
-		if (!g_bSettingsLoaded[client])
-			LoadClientSetting(client, g_iSettingToLoad[client]);
-
-		if (response.Status == HTTPStatus_NoContent)
-		{
-			// LogQueryTime("[Surf API] No entries found (%s)", func);
-			return;
-		}
-
-		LogError("[Surf API] API Error %i (%s)", response.Status, func);
-		return;
-	}
-
-	// Indicate that the response contains a JSON array
-	JSONArray jsonArray = view_as<JSONArray>(response.Data);
-	if (jsonArray.Length <= 0)
-	{
-		// Array is empty stop here
-		LogError("[Surf API] API Returned empty array (%s)", func);
-		delete jsonArray;
-		return;
-	}
-
-	jsonArray.ToString(out, sizeof(out), JSON_DECODE_ANY);
-	// PrintToServer("%s: %s", func, out);
-
-	for (int i = 0; i < jsonArray.Length; i++)
-	{
-		JSONObject jsonObject = view_as<JSONObject>(jsonArray.Get(i));
-		float	   runTime	  = jsonObject.GetFloat("runtime");
-		int		   zgroup	  = jsonObject.GetInt("zonegroup");
-		int		   style	  = jsonObject.GetInt("style");
-		int		   rank		  = jsonObject.GetInt("rank");
-
-		if (style == 0)
-		{
-			g_MapRankBonus[zgroup][client]		   = rank;
-			g_fPersonalRecordBonus[zgroup][client] = runTime;
-
-			if (g_fPersonalRecordBonus[zgroup][client] > 0.0)
-			{
-				FormatTimeFloat(client, g_fPersonalRecordBonus[zgroup][client], 3, g_szPersonalRecordBonus[zgroup][client], sizeof(g_szPersonalRecordBonus));
-			}
-			else
-			{
-				Format(g_szPersonalRecordBonus[zgroup][client], sizeof(g_szPersonalRecordBonus), "N/A");
-				g_fPersonalRecordBonus[zgroup][client] = 0.0;
-			}
-		}
-		else
-		{
-			g_fStylePersonalRecordBonus[style][zgroup][client] = runTime;
-
-			if (g_fStylePersonalRecordBonus[style][zgroup][client] > 0.0)
-			{
-				FormatTimeFloat(client, g_fStylePersonalRecordBonus[style][zgroup][client], 3, g_szStylePersonalRecordBonus[style][zgroup][client], sizeof(g_szStylePersonalRecordBonus));
-				g_StyleMapRankBonus[style][zgroup][client] = rank;
-				// db_viewMapRankBonusStyle(client, zgroup, 0, style);
-			}
-			else
-			{
-				Format(g_szPersonalRecordBonus[zgroup][client], sizeof(g_szPersonalRecordBonus), "N/A");
-				g_fPersonalRecordBonus[zgroup][client] = 0.0;
-			}
-		}
-
-		delete jsonObject;
-	}
-
-	if (!g_bSettingsLoaded[client])
-	{
-		g_fTick[client][1] = GetGameTime();
-		float tick		   = g_fTick[client][1] - g_fTick[client][0];
-		LogQueryTime("[Surf API] %s: Finished %s in %fs", func, g_szSteamID[client], tick);
-		g_fTick[client][0] = GetGameTime();
-
-		LoadClientSetting(client, g_iSettingToLoad[client]);
-	}
-
-	delete jsonArray;
-	LogQueryTime("====== [Surf API] : Finished %s in: %f", func, GetGameTime() - fTime);
-}
-
 public void apiSelectPlayerRankBonus(HTTPResponse response, DataPack data)
 {
 	char func[128];
@@ -1706,16 +1606,16 @@ public void apiSelectFastestBonusCallback(HTTPResponse response, DataPack data)
 		return;
 	}
 
-	for (int i = 0; i < MAXZONEGROUPS; i++)
+	for (int i = 0; i < MAXZONEGROUPS; i++)	   // Bonuses default data
 	{
-		Format(g_szBonusFastestTime[i], 64, "N/A");
+		Format(g_szBonusFastestTime[i], sizeof(g_szBonusFastestTime), "N/A");
 		g_fBonusFastest[i] = 9999999.0;
 
 		for (int s = 0; s < MAX_STYLES; s++)
 		{
 			if (s != 0)
 			{
-				Format(g_szStyleBonusFastestTime[s][i], 64, "N/A");
+				Format(g_szStyleBonusFastestTime[s][i], sizeof(g_szStyleBonusFastestTime), "N/A");
 				g_fStyleBonusFastest[s][i] = 9999999.0;
 			}
 
@@ -2363,8 +2263,8 @@ public void apiSelectBonusStyleRecordsCallback(HTTPResponse response, DataPack d
 			if (g_fStylePersonalRecordBonus[style][zgroup][client] > 0.0)
 			{
 				FormatTimeFloat(client, g_fStylePersonalRecordBonus[style][zgroup][client], 3, g_szStylePersonalRecordBonus[style][zgroup][client], sizeof(g_szStylePersonalRecordBonus));
-				// db_viewMapRankBonus(client, zgroup, 0); // get rank
-				db_viewMapRankBonusStyle(client, zgroup, 0, style);
+				db_viewMapRankBonus(client, zgroup, 0);	   // get rank
+														   // db_viewMapRankBonusStyle(client, zgroup, 0, style);
 			}
 			else
 			{
@@ -3439,33 +3339,12 @@ public void apiSelectPlayerPointsCallback(HTTPResponse response, DataPack data)
 
 	g_iTotalConnections[client]++;
 
-	// Prepare API call body
-	JSONObject jsonObject;
-	jsonObject	= JSONObject.FromString("{}");
-
-	DataPack dp = new DataPack();
-	dp.WriteString("updateConnections");
-	dp.WriteFloat(GetGameTime());
-	dp.Reset();
-
-	char apiRoute[512];
-	FormatEx(apiRoute, sizeof(apiRoute), "%s/surftimer/updatePlayerConnections?steamid32=%s", g_szApiHost, g_szSteamID[client]);
-	if (g_bApiDebug)
-	{
-		PrintToServer("API ROUTE: %s", apiRoute);
-	}
-
-	/* RipExt - PUT */
-	HTTPRequest request = new HTTPRequest(apiRoute);
-	request.Put(jsonObject, apiPutCallback, dp);
-
 	// Count players rank
 	if (IsValidClient(client))
 	{
 		api_GetPlayerRankAllStyles(client);
 	}
 
-	delete jsonObject;
 	delete jsonArray;
 	LogQueryTime("====== [Surf API] : Finished %s in: %f", func, GetGameTime() - fTime);
 
@@ -5388,7 +5267,6 @@ public void apiRecalculatePointsCallback(HTTPResponse response, DataPack data)
 			SQL_EscapeString(g_hDb, szUName, szNameInit, MAX_NAME_LENGTH * 2 + 1);
 
 			// "INSERT INTO ck_playerrank (steamid, name, country) VALUES('%s', '%s', '%s');";
-			// No need to continue calculating, as the doesn't have any records.
 			char apiRoute[512], body[1024];
 
 			// Prepare API call body
@@ -6029,4 +5907,406 @@ public void apiRecalculatePointsCallback(HTTPResponse response, DataPack data)
 	LogQueryTime("====== [Surf API] : Finished %s in %f for %s (%s | %s)", func, GetGameTime() - time, szName, szSteamId, szSteamId64);
 
 	delete jsonObject;
+}
+
+/* ck_playertimes */
+
+/* New New */
+// Player Map Data
+// this will have to be edited to house the Player object endpoint and load all the data from it
+public void apiSelectPlayerObjectCallback(HTTPResponse response, DataPack data)
+{
+	char func[128];
+	data.ReadString(func, sizeof(func));
+	float fTime	 = data.ReadFloat();
+	int	  client = data.ReadCell();
+	delete data;
+
+	if (!IsValidClient(client))
+	{
+		return;
+	}
+
+	for (int i = 0; i < MAXZONEGROUPS; i++)
+	{
+		g_fPersonalRecordBonus[i][client] = 0.0;
+		Format(g_szPersonalRecordBonus[i][client], 64, "N/A");
+		for (int s = 1; s < MAX_STYLES; s++)
+		{
+			g_fStylePersonalRecordBonus[s][i][client] = 0.0;
+			g_StyleMapRankBonus[s][i][client]		  = 9999999;
+			Format(g_szStylePersonalRecordBonus[s][i][client], sizeof(g_szStylePersonalRecordBonus), "N/A");
+		}
+	}
+
+	if (response.Status == HTTPStatus_NoContent)
+	{
+		api_insertNewPlayerOptions(client);	   // add new player `playeroptions2` entry to DB
+
+		if (!g_bSettingsLoaded[client])
+			LoadClientSetting(client, g_iSettingToLoad[client]);
+
+		LogQueryTime("[Surf API] No player data found while loading, adding new one... (%s)", func);
+		return;
+	}
+	else if (response.Status != HTTPStatus_OK)
+	{
+		if (!g_bSettingsLoaded[client])
+			LoadClientSetting(client, g_iSettingToLoad[client]);
+
+		LogError("[Surf API] Getting Player Object Error %i (%s)", response.Status, func);
+		return;
+	}
+
+	JSONObject jsonObject		  = view_as<JSONObject>(response.Data);
+	// Deal with Options data
+	JSONObject optionsObject	  = view_as<JSONObject>(jsonObject.Get("options_data"));
+	g_bTimerEnabled[client]		  = view_as<bool>(optionsObject.GetInt("timer"));
+	g_bHide[client]				  = view_as<bool>(optionsObject.GetInt("hide"));
+	g_bEnableQuakeSounds[client]  = view_as<bool>(optionsObject.GetInt("sounds"));
+	g_bHideChat[client]			  = view_as<bool>(optionsObject.GetInt("chat"));
+	g_bViewModel[client]		  = view_as<bool>(optionsObject.GetInt("viewmodel"));
+	g_bAutoBhopClient[client]	  = view_as<bool>(optionsObject.GetInt("autobhop"));
+	g_bCheckpointsEnabled[client] = view_as<bool>(optionsObject.GetInt("checkpoints"));
+	g_SpeedGradient[client]		  = optionsObject.GetInt("gradient");
+	g_SpeedMode[client]			  = optionsObject.GetInt("speedmode");
+	g_bCenterSpeedDisplay[client] = view_as<bool>(optionsObject.GetInt("centrespeed"));
+	g_bCentreHud[client]		  = view_as<bool>(optionsObject.GetInt("centrehud"));
+	g_iTeleSide[client]			  = optionsObject.GetInt("teleside");
+	g_iCentreHudModule[client][0] = optionsObject.GetInt("module1c");
+	g_iCentreHudModule[client][1] = optionsObject.GetInt("module2c");
+	g_iCentreHudModule[client][2] = optionsObject.GetInt("module3c");
+	g_iCentreHudModule[client][3] = optionsObject.GetInt("module4c");
+	g_iCentreHudModule[client][4] = optionsObject.GetInt("module5c");
+	g_iCentreHudModule[client][5] = optionsObject.GetInt("module6c");
+	g_bSideHud[client]			  = view_as<bool>(optionsObject.GetInt("sidehud"));
+	g_iSideHudModule[client][0]	  = optionsObject.GetInt("module1s");
+	g_iSideHudModule[client][1]	  = optionsObject.GetInt("module2s");
+	g_iSideHudModule[client][2]	  = optionsObject.GetInt("module3s");
+	g_iSideHudModule[client][3]	  = optionsObject.GetInt("module4s");
+	g_iSideHudModule[client][4]	  = optionsObject.GetInt("module5s");
+	g_iPrespeedText[client]		  = view_as<bool>(optionsObject.GetInt("prestrafe"));
+	g_iCpMessages[client]		  = view_as<bool>(optionsObject.GetInt("cpmessages"));
+	g_iWrcpMessages[client]		  = view_as<bool>(optionsObject.GetInt("wrcpmessages"));
+	g_bAllowHints[client]		  = view_as<bool>(optionsObject.GetInt("hints"));
+	g_iCSDUpdateRate[client]	  = optionsObject.GetInt("csd_update_rate");
+	g_fCSD_POS_X[client]		  = optionsObject.GetFloat("csd_pos_x");
+	g_fCSD_POS_Y[client]		  = optionsObject.GetFloat("csd_pos_y");
+	g_iCSD_R[client]			  = optionsObject.GetInt("csd_r");
+	g_iCSD_G[client]			  = optionsObject.GetInt("csd_g");
+	g_iCSD_B[client]			  = optionsObject.GetInt("csd_b");
+	g_PreSpeedMode[client]		  = optionsObject.GetInt("prespeedmode");
+
+	// Functionality for normal spec list
+	if (g_iSideHudModule[client][0] == 5 && (g_iSideHudModule[client][1] == 0 && g_iSideHudModule[client][2] == 0 && g_iSideHudModule[client][3] == 0 && g_iSideHudModule[client][4] == 0))
+		g_bSpecListOnly[client] = true;
+	else
+		g_bSpecListOnly[client] = false;
+
+	g_bLoadedModules[client] = true;
+
+	delete optionsObject;
+
+	// Deal with Bonus data if any
+	JSONArray bonusArray = view_as<JSONArray>(jsonObject.Get("bonus_data"));
+	for (int i = 0; i < bonusArray.Length; i++)
+	{
+		JSONObject jsonBonus = view_as<JSONObject>(bonusArray.Get(i));
+		float	   runTime	 = jsonBonus.GetFloat("runtime");
+		int		   zgroup	 = jsonBonus.GetInt("zonegroup");
+		int		   style	 = jsonBonus.GetInt("style");
+		int		   rank		 = jsonBonus.GetInt("rank");
+
+		if (style == 0)
+		{
+			g_MapRankBonus[zgroup][client]		   = rank;
+			g_fPersonalRecordBonus[zgroup][client] = runTime;
+
+			if (g_fPersonalRecordBonus[zgroup][client] > 0.0)
+			{
+				FormatTimeFloat(client, g_fPersonalRecordBonus[zgroup][client], 3, g_szPersonalRecordBonus[zgroup][client], sizeof(g_szPersonalRecordBonus));
+			}
+			else
+			{
+				Format(g_szPersonalRecordBonus[zgroup][client], sizeof(g_szPersonalRecordBonus), "N/A");
+				g_fPersonalRecordBonus[zgroup][client] = 0.0;
+			}
+		}
+		else
+		{
+			g_fStylePersonalRecordBonus[style][zgroup][client] = runTime;
+
+			if (g_fStylePersonalRecordBonus[style][zgroup][client] > 0.0)
+			{
+				FormatTimeFloat(client, g_fStylePersonalRecordBonus[style][zgroup][client], 3, g_szStylePersonalRecordBonus[style][zgroup][client], sizeof(g_szStylePersonalRecordBonus));
+				g_StyleMapRankBonus[style][zgroup][client] = rank;
+				// db_viewMapRankBonusStyle(client, zgroup, 0, style);
+			}
+			else
+			{
+				Format(g_szPersonalRecordBonus[zgroup][client], sizeof(g_szPersonalRecordBonus), "N/A");
+				g_fPersonalRecordBonus[zgroup][client] = 0.0;
+			}
+		}
+
+		delete jsonBonus;
+	}
+	delete bonusArray;
+
+	// Deal with Checkpoints data (`Checkpoints = Personal Map Run Stages` on *Staged* maps)
+	JSONArray checkpointsArray = view_as<JSONArray>(jsonObject.Get("checkpoints_data"));
+	for (int i = 0; i < checkpointsArray.Length; i++)
+	{
+		JSONObject checkpointsObject						= view_as<JSONObject>(checkpointsArray.Get(i));
+		int		   zonegroup								= checkpointsObject.GetInt("zonegroup");
+		int		   cp										= checkpointsObject.GetInt("cp");
+		float	   time										= checkpointsObject.GetFloat("time");
+		g_bCheckpointsFound[zonegroup][client]				= true;
+		g_fCheckpointTimesRecord[zonegroup][client][cp - 1] = time;
+
+		float stage_time									= checkpointsObject.GetFloat("stage_time");
+		int	  attempts										= checkpointsObject.GetInt("stage_attempts");
+		g_fCCPStageTimesRecord[client][cp - 1]				= stage_time;	 // eliminates db_LoadCCP
+		g_iCCPStageAttemptsRecord[client][cp - 1]			= attempts;		 // eliminates db_LoadStageAttempts
+
+		g_bCheckpointsFound[zonegroup][client]				= true;	   // eliminates db_viewCheckpointsinZoneGroup
+		g_fCheckpointTimesRecord[zonegroup][client][cp - 1] = time;	   // eliminates db_viewCheckpointsinZoneGroup
+
+		delete checkpointsObject;
+	}
+	delete checkpointsArray;
+
+	// Deal with Points data if any
+	JSONArray pointsArray = view_as<JSONArray>(jsonObject.Get("points_data"));
+	if (pointsArray.Length > 0)
+	{
+		for (int k = 0; k < pointsArray.Length; k++)
+		{
+			JSONObject pointsObject				  = view_as<JSONObject>(pointsArray.Get(k));
+			int		   style					  = pointsObject.GetInt("style");
+			g_pr_points[client][style]			  = pointsObject.GetInt("points");
+			g_pr_finishedmaps[client][style]	  = pointsObject.GetInt("finishedmapspro");
+			g_pr_finishedmaps_perc[client][style] = (float(g_pr_finishedmaps[client][style]) / float(g_pr_MapCount[0])) * 100.0;
+
+			if (style == 0)
+			{
+				g_iPlayTimeAlive[client]	= pointsObject.GetInt("timealive");
+				g_iPlayTimeSpec[client]		= pointsObject.GetInt("timespec");
+				g_iTotalConnections[client] = pointsObject.GetInt("connections");
+			}
+
+			delete pointsObject;
+		}
+		delete pointsArray;
+
+		g_iTotalConnections[client]++;
+
+		api_updatePlayerConnections(client);
+
+		// Count players rank
+		api_GetPlayerRankAllStyles(client);
+	}
+	else	// new player, insert data in DB
+	{
+		api_insertNewPlayerRank(client);
+	}
+
+	if (!g_bSettingsLoaded[client])
+	{
+		g_fTick[client][1] = GetGameTime();
+		float tick		   = g_fTick[client][1] - g_fTick[client][0];
+		LogQueryTime("[Surf API] %s: Finished %s in %fs", func, g_szSteamID[client], tick);
+		g_fTick[client][0] = GetGameTime();
+
+		LoadClientSetting(client, g_iSettingToLoad[client]);
+	}
+
+	delete jsonObject;
+	LogQueryTime("====== [Surf API] : Finished %s in: %f", func, GetGameTime() - fTime);
+}
+
+public void apiSelectMapDataObjectCallback(HTTPResponse response, DataPack data)
+{
+	char func[128];
+	data.ReadString(func, sizeof(func));
+	float fTime = data.ReadFloat();
+	delete data;
+
+	// Set all map data to 0 or N/A
+	Format(g_szRecordMapTime, sizeof(g_szRecordMapTime), "N/A");
+	g_fRecordMapTime = 9999999.0;
+	g_MapTimesCount	 = 0;
+	for (int i = 0; i < MAX_STYLES; i++)	// Map and Stage default data
+	{
+		Format(g_szRecordStyleMapTime[i], sizeof(g_szRecordStyleMapTime), "N/A");
+		g_fRecordStyleMapTime[i]	= 9999999.0;
+		g_iRecordPreStrafe[0][0][i] = 0;
+		g_iRecordPreStrafe[1][0][i] = 0;
+		g_iRecordPreStrafe[2][0][i] = 0;
+		g_StyleMapTimesCount[i]		= 0;
+	}
+	for (int i = 0; i < MAXZONEGROUPS; i++)	   // Bonuses default data
+	{
+		Format(g_szBonusFastestTime[i], sizeof(g_szBonusFastestTime), "N/A");
+		g_fBonusFastest[i] = 9999999.0;
+
+		for (int s = 0; s < MAX_STYLES; s++)
+		{
+			if (s != 0)
+			{
+				Format(g_szStyleBonusFastestTime[s][i], sizeof(g_szStyleBonusFastestTime), "N/A");
+				g_fStyleBonusFastest[s][i] = 9999999.0;
+			}
+
+			g_iRecordPreStrafeBonus[0][i][s] = 0;
+			g_iRecordPreStrafeBonus[1][i][s] = 0;
+			g_iRecordPreStrafeBonus[2][i][s] = 0;
+		}
+	}
+
+	if (response.Status == HTTPStatus_NoContent)
+	{
+		LogQueryTime("[Surf API] No Map Data found while loading... (%s)", func);
+		return;
+	}
+	else if (response.Status != HTTPStatus_OK)
+	{
+		LogError("[Surf API] Getting Map Object Error %i (%s)", response.Status, func);
+		return;
+	}
+
+	JSONObject jsonObject  = view_as<JSONObject>(response.Data);
+
+	// Deal with all map records (all styles)
+	JSONArray  record_runs = view_as<JSONArray>(jsonObject.Get("map_record_runs_data"));
+	if (g_bApiDebug)
+	{
+		char out[1024];
+		record_runs.ToString(out, sizeof(out));
+		PrintToServer("[Surf API] Output (%s): %s", func, out);
+	}
+	for (int i = 0; i < record_runs.Length; i++)
+	{
+		JSONObject recordObject = view_as<JSONObject>(record_runs.Get(i));
+		char	   recordHolderName[MAX_NAME_LENGTH], recordHolderSteamID[64];
+		float	   runtimepro = recordObject.GetFloat("runtimepro");
+		recordObject.GetString("name", recordHolderName, sizeof(recordHolderName));
+		recordObject.GetString("steamid", recordHolderSteamID, sizeof(recordHolderSteamID));
+		int style		= recordObject.GetInt("style");
+		int velStartXY	= recordObject.GetInt("velStartXY");
+		int velStartXYZ = recordObject.GetInt("velStartXYZ");
+		int velStartZ	= recordObject.GetInt("velstartZ");
+		int total		= recordObject.GetInt("total");	   // eliminates db_viewMapProRankCount
+
+		if (style == 0)
+		{
+			g_fRecordMapTime = runtimepro;
+			g_MapTimesCount	 = total;	 // eliminates db_viewMapProRankCount
+
+			if (g_fRecordMapTime > -1.0)
+			{
+				g_fRecordMapTime = runtimepro;
+				FormatTimeFloat(0, g_fRecordMapTime, 3, g_szRecordMapTime, sizeof(g_szRecordMapTime));
+				recordObject.GetString("name", g_szRecordPlayer, sizeof(g_szRecordPlayer));
+				recordObject.GetString("steamid", g_szRecordMapSteamID, sizeof(g_szRecordMapSteamID));
+			}
+			else
+			{
+				Format(g_szRecordMapTime, sizeof(g_szRecordMapTime), "N/A");
+				g_fRecordMapTime = 9999999.0;
+			}
+		}
+		else
+		{
+			g_fRecordStyleMapTime[style] = runtimepro;
+			g_StyleMapTimesCount[style]	 = total;	 // eliminates db_viewMapProRankCount
+
+			if (g_fRecordStyleMapTime[style] > -1.0)
+			{
+				g_fRecordStyleMapTime[style] = runtimepro;
+				FormatTimeFloat(0, g_fRecordStyleMapTime[style], 3, g_szRecordStyleMapTime[style], sizeof(g_szRecordStyleMapTime));
+				recordObject.GetString("name", g_szRecordStylePlayer[style], sizeof(g_szRecordStylePlayer));
+				recordObject.GetString("steamid", g_szRecordStyleMapSteamID[style], sizeof(g_szRecordStyleMapSteamID));
+			}
+			else
+			{
+				Format(g_szRecordStyleMapTime[style], sizeof(g_szRecordStyleMapTime), "N/A");
+				g_fRecordStyleMapTime[style] = 9999999.0;
+			}
+		}
+
+		g_iRecordPreStrafe[0][0][style] = velStartXY;
+		g_iRecordPreStrafe[1][0][style] = velStartXYZ;
+		g_iRecordPreStrafe[2][0][style] = velStartZ;
+
+		delete recordObject;
+	}
+	delete record_runs;
+
+	// Deal with bonus data (all styles)
+	JSONArray map_bonus_data = view_as<JSONArray>(jsonObject.Get("map_bonus_data"));	// eliminates db_viewFastestBonus
+	if (g_bApiDebug)
+	{
+		char out[1024];
+		map_bonus_data.ToString(out, sizeof(out));
+		PrintToServer("[Surf API] Output (%s): %s", func, out);
+	}
+	for (int i = 0; i < map_bonus_data.Length; i++)
+	{
+		JSONObject bonusDataObject = view_as<JSONObject>(map_bonus_data.Get(i));
+		float	   runTime		   = bonusDataObject.GetFloat("runtime");
+		int		   zonegroup	   = bonusDataObject.GetInt("zonegroup");
+		int		   style		   = bonusDataObject.GetInt("style");
+		int		   velStartXY	   = bonusDataObject.GetInt("velStartXY");
+		int		   velStartXYZ	   = bonusDataObject.GetInt("velStartXYZ");
+		int		   velStartZ	   = bonusDataObject.GetInt("velstartZ");
+		int		   total		   = bonusDataObject.GetInt("total");
+
+		if (style == 0)
+		{
+			g_iBonusCount[zonegroup] = total;	 // eliminates db_viewBonusTotalCount
+
+			bonusDataObject.GetString("name", g_szBonusFastest[zonegroup], sizeof(g_szBonusFastest));
+			g_fBonusFastest[zonegroup] = runTime;
+			FormatTimeFloat(1, g_fBonusFastest[zonegroup], 3, g_szBonusFastestTime[zonegroup], sizeof(g_szBonusFastestTime));
+		}
+		else
+		{
+			g_iStyleBonusCount[style][zonegroup] = total;	 // eliminates db_viewBonusTotalCount
+			bonusDataObject.GetString("name", g_szStyleBonusFastest[style][zonegroup], sizeof(g_szStyleBonusFastest));
+			g_fStyleBonusFastest[style][zonegroup] = runTime;
+			FormatTimeFloat(1, g_fStyleBonusFastest[style][zonegroup], 3, g_szStyleBonusFastestTime[style][zonegroup], sizeof(g_szStyleBonusFastestTime));
+		}
+
+		g_iRecordPreStrafeBonus[0][zonegroup][style] = velStartXY;
+		g_iRecordPreStrafeBonus[1][zonegroup][style] = velStartXYZ;
+		g_iRecordPreStrafeBonus[2][zonegroup][style] = velStartZ;
+
+		delete bonusDataObject;
+	}
+	delete map_bonus_data;
+
+	// No need to check data again :?
+	// for (int i = 0; i < MAXZONEGROUPS; i++)
+	// {
+	// 	if (g_fBonusFastest[i] == 0.0)
+	// 		g_fBonusFastest[i] = 9999999.0;
+
+	// 	for (int s = 1; s < MAX_STYLES; s++)
+	// 	{
+	// 		if (g_fStyleBonusFastest[s][i] == 0.0)
+	// 			g_fStyleBonusFastest[s][i] = 9999999.0;
+	// 	}
+	// }
+
+	if (!g_bServerDataLoaded)
+	{
+		// db_viewMapProRankCount(); // integrated inside this callback through new API endpoint
+		// db_viewFastestBonus(); // integrated inside this callback through new API endpoint
+		// db_viewBonusTotalCount(); // integrated inside this callback through new API endpoint
+		CreateTimer(3.0, RefreshZonesTimer, INVALID_HANDLE, TIMER_FLAG_NO_MAPCHANGE);
+	}
+
+	delete jsonObject;
+	LogQueryTime("====== [Surf API] : Finished %s in: %f", func, GetGameTime() - fTime);
 }

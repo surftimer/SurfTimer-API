@@ -89,19 +89,19 @@ public void LoadClientSetting(int client, int setting)
 	{
 		if (GetConVarBool(g_hSurfApiEnabled))
 		{
-			switch (setting)
+			switch (setting) // all of these will be added to a single endpoint
 			{
 				case 0: db_viewPersonalRecords(client, g_szSteamID[client], g_szMapName);
-				case 1: api_viewPersonalBonusesInfo(client, g_szSteamID[client]);
+				case 1: api_viewPlayerObject(client, g_szSteamID[client]);
 				case 2: db_viewPersonalStageRecords(client, g_szSteamID[client]);
 				case 3: db_viewPersonalPrestrafeSpeeds(client, g_szSteamID[client]);
-				case 4: db_viewPlayerPoints(client);
-				case 5: db_viewPlayerOptions(client, g_szSteamID[client]);
-				case 6: db_CheckVIPAdmin(client, g_szSteamID[client]);
-				case 7: db_viewCustomTitles(client);
-				case 8: db_viewCheckpoints(client, g_szSteamID[client], g_szMapName);
-				case 9: db_LoadCCP(client);
-				case 10: db_viewPRinfo(client, g_szSteamID[client], g_szMapName);
+				// case 4: db_viewPlayerPoints(client); // added to api_viewPlayerObject
+				// case 5: db_viewPlayerOptions(client, g_szSteamID[client]); // added to api_viewPlayerObject
+				case 4: db_CheckVIPAdmin(client, g_szSteamID[client]);
+				case 5: db_viewCustomTitles(client);
+				// case 8: db_viewCheckpoints(client, g_szSteamID[client], g_szMapName); // added to an endpoint along with bonuses
+				// case 6: db_LoadCCP(client); // this is db_LoadCCP_StageTimes
+				case 6: db_viewPRinfo(client, g_szSteamID[client], g_szMapName);
 				default: db_viewPersonalRecords(client, g_szSteamID[client], g_szMapName);
 			}
 		}
